@@ -179,7 +179,7 @@ func checkPath(path string) (int, error) {
 					fmt.Printf("\x1b[31m-%s\x1b[0m\n", line)
 				}
 				for _, line := range strings.Split(prefix+curFunc.String(), "\n") {
-					fmt.Printf("\x1b[32m-%s\x1b[0m\n", line)
+					fmt.Printf("\x1b[32m+%s\x1b[0m\n", line)
 				}
 				fmt.Print("\n")
 				diffs++
