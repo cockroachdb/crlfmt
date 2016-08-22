@@ -10,7 +10,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -190,7 +189,6 @@ func checkPath(path string) (int, error) {
 	}
 	output.Write(fileBytes[fset.Position(lastPos).Offset:])
 
-	log.Print(*overwrite)
 	if *overwrite {
 		err = ioutil.WriteFile(path, output.Bytes(), 0)
 		if err != nil {
