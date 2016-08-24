@@ -32,7 +32,7 @@ import (
 var (
 	wrap      = flag.Int("wrap", 100, "column to wrap at")
 	tab       = flag.Int("tab", 8, "tab width for column calculations")
-	overwrite = flag.Bool("overwrite", false, "overwrite modified files")
+	overwrite = flag.Bool("w", false, "overwrite modified files")
 	ignore    = flag.String("ignore", "", "regex matching files to skip")
 )
 
