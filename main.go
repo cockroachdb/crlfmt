@@ -95,6 +95,12 @@ func main() {
 	}
 }
 
+func maybeWrite(output bytes.Buffer, b []byte) {
+	if *overwrite {
+		output.Write(b)
+	}
+}
+
 func checkPath(path string) (int, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, nil, 0)
@@ -122,7 +128,7 @@ func checkPath(path string) (int, error) {
 
 			opening := params.Pos() + 1
 			closing := f.Body.Pos() + 1
-			output.Write(fileBytes[fset.Position(lastPos).Offset:fset.Position(opening).Offset])
+			maybeWrite(output, fileBytes[fset.Position(lastPos).Offset:fset.Position(opening).Offset])
 			lastPos = closing
 
 			var paramsBuf bytes.Buffer
@@ -202,13 +208,13 @@ func checkPath(path string) (int, error) {
 				}
 				fmt.Print("\n")
 				diffs++
-				output.Write(curFunc.Bytes())
+				maybeWrite(output, curFunc.Bytes())
 			} else {
-				output.Write(oldFunc)
+				maybeWrite(output, oldFunc)
 			}
 		}
 	}
-	output.Write(fileBytes[fset.Position(lastPos).Offset:])
+	maybeWrite(output, fileBytes[fset.Position(lastPos).Offset:])
 
 	if *overwrite && diffs > 0 {
 		err = ioutil.WriteFile(path, output.Bytes(), 0)
