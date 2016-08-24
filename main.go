@@ -48,6 +48,11 @@ func main() {
 		fmt.Printf("Error finding absolute path: %s", err)
 		return
 	}
+	root, err = filepath.EvalSymlinks(root)
+	if err != nil {
+		fmt.Printf("Error following symlinks in input path: %s", err)
+		return
+	}
 
 	var ignoreRE *regexp.Regexp
 	if len(*ignore) > 0 {
