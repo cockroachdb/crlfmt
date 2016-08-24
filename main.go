@@ -196,8 +196,10 @@ func checkPath(path string) (int, error) {
 				}
 				fmt.Print("\n")
 				diffs++
+				output.Write(curFunc.Bytes())
+			} else {
+				output.Write(oldFunc)
 			}
-			output.Write(oldFunc)
 		}
 	}
 	output.Write(fileBytes[fset.Position(lastPos).Offset:])
