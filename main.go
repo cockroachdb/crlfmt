@@ -32,7 +32,7 @@ import (
 var (
 	wrap      = flag.Int("wrap", 100, "column to wrap at")
 	tab       = flag.Int("tab", 8, "tab width for column calculations")
-	overwrite = flag.Bool("overwrite", false, "overwrite modified files")
+	overwrite = flag.Bool("w", false, "overwrite modified files")
 	ignore    = flag.String("ignore", "", "regex matching files to skip")
 )
 
@@ -95,6 +95,12 @@ func main() {
 	}
 }
 
+func maybeWrite(output bytes.Buffer, b []byte) {
+	if *overwrite {
+		output.Write(b)
+	}
+}
+
 func checkPath(path string) (int, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, nil, 0)
@@ -122,7 +128,7 @@ func checkPath(path string) (int, error) {
 
 			opening := params.Pos() + 1
 			closing := f.Body.Pos() + 1
-			output.Write(fileBytes[fset.Position(lastPos).Offset:fset.Position(opening).Offset])
+			maybeWrite(output, fileBytes[fset.Position(lastPos).Offset:fset.Position(opening).Offset])
 			lastPos = closing
 
 			var paramsBuf bytes.Buffer
@@ -148,13 +154,13 @@ func checkPath(path string) (int, error) {
 			resultsJoined := resultsBuf.Bytes()
 
 			funcMid := `) (`
-			funcEnd := `) {`
+			funcEnd := `)`
 			if results == nil || len(results.List) == 0 {
-				funcMid = `) `
-				funcEnd = `{`
+				funcMid = `)`
+				funcEnd = ``
 			} else if len(results.List) == 1 && len(results.List[0].Names) == 0 {
 				funcMid = `) `
-				funcEnd = ` {`
+				funcEnd = ``
 			}
 
 			curFunc.Reset()
@@ -168,14 +174,14 @@ func checkPath(path string) (int, error) {
 				if len(params.List) == 0 {
 					// pass
 				} else if *tab+len(paramsJoined) <= *wrap {
-					fmt.Fprintf(&curFunc, "\n\t%s,", paramsJoined)
+					fmt.Fprintf(&curFunc, "\n\t%s,\n", paramsJoined)
 				} else {
 					for _, param := range params.List {
 						fmt.Fprintf(&curFunc, "\n\t%s,", fileSlice(param.Pos(), param.End()))
 					}
+					curFunc.WriteByte('\n')
 				}
 				if *tab+len(funcMid)+len(resultsJoined)+len(funcEnd) <= *wrap {
-					curFunc.WriteByte('\n')
 					curFunc.WriteString(funcMid)
 					curFunc.Write(resultsJoined)
 					curFunc.WriteString(funcEnd)
@@ -188,6 +194,7 @@ func checkPath(path string) (int, error) {
 					curFunc.WriteString(funcEnd)
 				}
 			}
+			curFunc.Write(fileBytes[fset.Position(f.Type.End()).Offset:fset.Position(closing).Offset])
 
 			oldFunc := fileSlice(opening, closing)
 			if !bytes.Equal(oldFunc, curFunc.Bytes()) {
@@ -201,15 +208,15 @@ func checkPath(path string) (int, error) {
 				}
 				fmt.Print("\n")
 				diffs++
-				output.Write(curFunc.Bytes())
+				maybeWrite(output, curFunc.Bytes())
 			} else {
-				output.Write(oldFunc)
+				maybeWrite(output, oldFunc)
 			}
 		}
 	}
-	output.Write(fileBytes[fset.Position(lastPos).Offset:])
+	maybeWrite(output, fileBytes[fset.Position(lastPos).Offset:])
 
-	if *overwrite {
+	if *overwrite && diffs > 0 {
 		err = ioutil.WriteFile(path, output.Bytes(), 0)
 		if err != nil {
 			return 0, err
