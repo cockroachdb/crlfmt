@@ -95,7 +95,7 @@ func main() {
 	}
 }
 
-func maybeWrite(output bytes.Buffer, b []byte) {
+func maybeWrite(output *bytes.Buffer, b []byte) {
 	if *overwrite {
 		output.Write(b)
 	}
@@ -117,8 +117,8 @@ func checkPath(path string) (int, error) {
 	}
 
 	var diffs int
-	var output bytes.Buffer
 	var curFunc bytes.Buffer
+	output := new(bytes.Buffer)
 
 	lastPos := token.NoPos
 	for _, d := range f.Decls {
