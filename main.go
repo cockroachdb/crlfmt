@@ -142,6 +142,9 @@ func checkPath(path string) (int, error) {
 			}
 			paramsJoined := paramsBuf.Bytes()
 
+			// Final comma needed if params are written out onto their own single line.
+			const paramsLineEndComma = `,`
+
 			var resultsBuf bytes.Buffer
 			if results != nil {
 				resultsPrefix := ""
@@ -173,7 +176,7 @@ func checkPath(path string) (int, error) {
 			} else {
 				if len(params.List) == 0 {
 					// pass
-				} else if *tab+len(paramsJoined) <= *wrap {
+				} else if *tab+len(paramsJoined)+len(paramsLineEndComma) <= *wrap {
 					fmt.Fprintf(&curFunc, "\n\t%s,\n", paramsJoined)
 				} else {
 					for _, param := range params.List {
