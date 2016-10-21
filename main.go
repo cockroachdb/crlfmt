@@ -91,7 +91,6 @@ func main() {
 	}
 	if diffs > 0 {
 		fmt.Printf("Found %d diffs\n", diffs)
-		os.Exit(1)
 	}
 }
 
