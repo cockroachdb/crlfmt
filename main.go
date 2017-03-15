@@ -126,7 +126,12 @@ func checkPath(path string) (int, error) {
 			results := f.Type.Results
 
 			opening := params.Pos() + 1
-			closing := f.Body.Pos() + 1
+			closing := f.Type.End()
+			// f.Body is nil if the FuncDecl is a forward declaration.
+			if f.Body != nil {
+				closing = f.Body.Pos() + 1
+			}
+
 			maybeWrite(output, fileBytes[fset.Position(lastPos).Offset:fset.Position(opening).Offset])
 			lastPos = closing
 
