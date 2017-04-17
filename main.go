@@ -170,9 +170,15 @@ func checkPath(path string) (int, error) {
 				funcEnd = ``
 			}
 
+			brace := 0
+			if f.Body != nil {
+				brace = len(` {`)
+			}
+
 			curFunc.Reset()
-			colOffset := fset.Position(opening).Column
-			if colOffset+len(paramsJoined)+len(funcMid)+len(resultsJoined)+len(funcEnd) <= *wrap {
+			// colOffset - 1 accounts for `func (r *foo) bar(`
+			colOffset := fset.Position(opening).Column - 1
+			if colOffset+len(paramsJoined)+len(funcMid)+len(resultsJoined)+len(funcEnd)+brace <= *wrap {
 				curFunc.Write(paramsJoined)
 				curFunc.WriteString(funcMid)
 				curFunc.Write(resultsJoined)
@@ -188,7 +194,7 @@ func checkPath(path string) (int, error) {
 					}
 					curFunc.WriteByte('\n')
 				}
-				if *tab+len(funcMid)+len(resultsJoined)+len(funcEnd) <= *wrap {
+				if *tab+len(funcMid)+len(resultsJoined)+len(funcEnd)+brace <= *wrap {
 					curFunc.WriteString(funcMid)
 					curFunc.Write(resultsJoined)
 					curFunc.WriteString(funcEnd)

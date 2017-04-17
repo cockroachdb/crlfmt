@@ -32,3 +32,32 @@ func _cgoCheckPointer(interface{}, ...interface{})
 //go:linkname _cgoCheckResult runtime.cgoCheckResult
 func _cgoCheckResult(interface{})
 
+func someSignatureThatIs100Chars____________________________________(someArg, someOtherArg string) {
+}
+
+func someSignatureThatIs101Chars_____________________________________(
+	someArg, someOtherArg string,
+) {
+}
+
+func someSignatureWithResults(someArg, someOtherArg string) (string, string, string, string, bool) {
+}
+
+
+func someSignatureWithLongResults(
+	someArg, someOtherArg string,
+) (string, string, string, string, string) {
+}
+
+func someSigWithLongArgs(
+	someArg string,
+	someOtherArg string,
+	someLoooooooooooooooooooooooooooooooooooooooooooooooooooooooog int,
+) {
+}
+
+func someSigWithLongArgsAndElidedTypeShorthand(
+	someArg, someOtherArg string,
+	someLoooooooooooooooooooooooooooooooooooooooooooooooooooooooog int,
+) {
+}
