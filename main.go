@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"golang.org/x/tools/imports"
 )
 
 var (
@@ -86,8 +88,8 @@ func main() {
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("Error during walk: %s", err)
-		return
+		fmt.Fprintf(os.Stderr, "Error during walk:\n%s\n", err)
+		os.Exit(1)
 	}
 	if diffs > 0 {
 		fmt.Printf("Found %d diffs\n", diffs)
@@ -102,20 +104,42 @@ func maybeWrite(output *bytes.Buffer, b []byte) {
 
 func checkPath(path string) (int, error) {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, nil, 0)
+
+	src, err := ioutil.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
 
-	fileBytes, err := ioutil.ReadFile(path)
+	// Run goimports, which also runs gofmt.
+	importOpts := imports.Options{
+		AllErrors:  true,
+		Comments:   true,
+		TabIndent:  false,
+		TabWidth:   *tab,
+		FormatOnly: false,
+	}
+	fileBytes, err := imports.Process(path, src, &importOpts)
 	if err != nil {
 		return 0, err
 	}
+	var diffs int
+
+	// If goimports made any change, count that as a diff so the file
+	// can be overwritten at the end.
+	if bytes.Compare(fileBytes, src) != 0 {
+		diffs = 1
+	}
+
+	// Load the AST from the output of goimports.
+	f, err := parser.ParseFile(fset, path, fileBytes, parser.AllErrors)
+	if err != nil {
+		return 0, err
+	}
+
 	fileSlice := func(beg token.Pos, end token.Pos) []byte {
 		return fileBytes[fset.Position(beg).Offset:fset.Position(end).Offset]
 	}
 
-	var diffs int
 	var curFunc bytes.Buffer
 	output := new(bytes.Buffer)
 
