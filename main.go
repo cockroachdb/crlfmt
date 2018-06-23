@@ -28,6 +28,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cockroachdb/ttycolor"
 	"golang.org/x/tools/imports"
 )
 
@@ -102,6 +103,12 @@ func maybeWrite(output *bytes.Buffer, b []byte) {
 	}
 }
 
+func getColors() (string, string, string) {
+	return string(ttycolor.StdoutProfile[ttycolor.Red]),
+		string(ttycolor.StdoutProfile[ttycolor.Green]),
+		string(ttycolor.StdoutProfile[ttycolor.Reset])
+}
+
 func checkPath(path string) (int, error) {
 	fset := token.NewFileSet()
 
@@ -142,6 +149,8 @@ func checkPath(path string) (int, error) {
 
 	var curFunc bytes.Buffer
 	output := new(bytes.Buffer)
+
+	red, green, reset := getColors()
 
 	lastPos := token.NoPos
 	for _, d := range f.Decls {
@@ -238,10 +247,10 @@ func checkPath(path string) (int, error) {
 				prefix := string(fileBytes[fset.Position(d.Pos()).Offset:fset.Position(opening).Offset])
 				fmt.Printf("%s:%d\n", path, fset.Position(d.Pos()).Line)
 				for _, line := range strings.Split(prefix+string(oldFunc), "\n") {
-					fmt.Printf("\x1b[31m-%s\x1b[0m\n", line)
+					fmt.Printf("%s-%s%s\n", red, line, reset)
 				}
 				for _, line := range strings.Split(prefix+curFunc.String(), "\n") {
-					fmt.Printf("\x1b[32m+%s\x1b[0m\n", line)
+					fmt.Printf("%s+%s%s\n", green, line, reset)
 				}
 				fmt.Print("\n")
 				diffs++
