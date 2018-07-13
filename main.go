@@ -36,6 +36,7 @@ var (
 	wrap      = flag.Int("wrap", 100, "column to wrap at")
 	tab       = flag.Int("tab", 8, "tab width for column calculations")
 	overwrite = flag.Bool("w", false, "overwrite modified files")
+	fast      = flag.Bool("fast", false, "skip running goimports")
 	ignore    = flag.String("ignore", "", "regex matching files to skip")
 )
 
@@ -110,35 +111,36 @@ func getColors() (string, string, string) {
 }
 
 func checkPath(path string) (int, error) {
-	fset := token.NewFileSet()
-
-	src, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, err
-	}
-
-	// Run goimports, which also runs gofmt.
-	importOpts := imports.Options{
-		AllErrors:  true,
-		Comments:   true,
-		TabIndent:  false,
-		TabWidth:   *tab,
-		FormatOnly: false,
-	}
-	fileBytes, err := imports.Process(path, src, &importOpts)
-	if err != nil {
-		return 0, err
-	}
 	var diffs int
 
-	// If goimports made any change, count that as a diff so the file
-	// can be overwritten at the end.
-	if bytes.Compare(fileBytes, src) != 0 {
-		fmt.Printf("%s: import list mismatch\n", path)
-		diffs = 1
+	fileBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return 0, err
 	}
 
-	// Load the AST from the output of goimports.
+	if !*fast {
+		// Run goimports, which also runs gofmt.
+		importOpts := imports.Options{
+			AllErrors:  true,
+			Comments:   true,
+			TabIndent:  false,
+			TabWidth:   *tab,
+			FormatOnly: false,
+		}
+		newFileBytes, err := imports.Process(path, fileBytes, &importOpts)
+		if err != nil {
+			return 0, err
+		}
+		// If goimports made any change, count that as a diff so the file
+		// can be overwritten at the end.
+		if bytes.Compare(fileBytes, newFileBytes) != 0 {
+			fmt.Printf("%s: import list mismatch\n", path)
+			diffs = 1
+		}
+		fileBytes = newFileBytes
+	}
+
+	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, fileBytes, parser.AllErrors)
 	if err != nil {
 		return 0, err
