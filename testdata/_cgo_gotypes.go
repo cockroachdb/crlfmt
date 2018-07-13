@@ -12,12 +12,15 @@ import _ "runtime/cgo"
 import "syscall"
 
 var _ syscall.Errno
+
 func _Cgo_ptr(ptr unsafe.Pointer) unsafe.Pointer { return ptr }
 
 //go:linkname _Cgo_always_false runtime.cgoAlwaysFalse
 var _Cgo_always_false bool
+
 //go:linkname _Cgo_use runtime.cgoUse
 func _Cgo_use(interface{})
+
 type _Ctype_void [0]byte
 
 //go:linkname _cgo_runtime_cgocall runtime.cgocall
@@ -42,7 +45,6 @@ func someSignatureThatIs101Chars_____________________________________(
 
 func someSignatureWithResults(someArg, someOtherArg string) (string, string, string, string, bool) {
 }
-
 
 func someSignatureWithLongResults(
 	someArg, someOtherArg string,
