@@ -37,13 +37,30 @@ var (
 	tab       = flag.Int("tab", 8, "tab width for column calculations")
 	overwrite = flag.Bool("w", false, "overwrite modified files")
 	fast      = flag.Bool("fast", false, "skip running goimports")
+	printDiff = flag.Bool("diff", true, "print diffs")
 	ignore    = flag.String("ignore", "", "regex matching files to skip")
 )
 
 func main() {
 	flag.Parse()
 	if len(flag.Args()) != 1 {
-		fmt.Println("missing argument: filepath")
+		content, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		*overwrite = true
+		*printDiff = false
+		_, out, err := checkBuf("<standard input>", content)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if _, err := out.WriteTo(os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		return
 	}
 
@@ -118,6 +135,24 @@ func checkPath(path string) (int, error) {
 		return 0, err
 	}
 
+	diffs, output, err := checkBuf(path, fileBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	if *overwrite && diffs > 0 {
+		err = ioutil.WriteFile(path, output.Bytes(), 0)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return diffs, nil
+}
+
+func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
+	output := new(bytes.Buffer)
+	var diffs int
 	if !*fast {
 		// Run goimports, which also runs gofmt.
 		importOpts := imports.Options{
@@ -129,7 +164,7 @@ func checkPath(path string) (int, error) {
 		}
 		newFileBytes, err := imports.Process(path, fileBytes, &importOpts)
 		if err != nil {
-			return 0, err
+			return 0, output, err
 		}
 		// If goimports made any change, count that as a diff so the file
 		// can be overwritten at the end.
@@ -143,7 +178,7 @@ func checkPath(path string) (int, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, fileBytes, parser.AllErrors)
 	if err != nil {
-		return 0, err
+		return 0, output, err
 	}
 
 	fileSlice := func(beg token.Pos, end token.Pos) []byte {
@@ -151,7 +186,6 @@ func checkPath(path string) (int, error) {
 	}
 
 	var curFunc bytes.Buffer
-	output := new(bytes.Buffer)
 
 	red, green, reset := getColors()
 
@@ -247,15 +281,17 @@ func checkPath(path string) (int, error) {
 
 			oldFunc := fileSlice(opening, closing)
 			if !bytes.Equal(oldFunc, curFunc.Bytes()) {
-				prefix := string(fileBytes[fset.Position(d.Pos()).Offset:fset.Position(opening).Offset])
-				fmt.Printf("%s:%d\n", path, fset.Position(d.Pos()).Line)
-				for _, line := range strings.Split(prefix+string(oldFunc), "\n") {
-					fmt.Printf("%s-%s%s\n", red, line, reset)
+				if *printDiff {
+					prefix := string(fileBytes[fset.Position(d.Pos()).Offset:fset.Position(opening).Offset])
+					fmt.Printf("%s:%d\n", path, fset.Position(d.Pos()).Line)
+					for _, line := range strings.Split(prefix+string(oldFunc), "\n") {
+						fmt.Printf("%s-%s%s\n", red, line, reset)
+					}
+					for _, line := range strings.Split(prefix+curFunc.String(), "\n") {
+						fmt.Printf("%s+%s%s\n", green, line, reset)
+					}
+					fmt.Print("\n")
 				}
-				for _, line := range strings.Split(prefix+curFunc.String(), "\n") {
-					fmt.Printf("%s+%s%s\n", green, line, reset)
-				}
-				fmt.Print("\n")
 				diffs++
 				maybeWrite(output, curFunc.Bytes())
 			} else {
@@ -264,13 +300,5 @@ func checkPath(path string) (int, error) {
 		}
 	}
 	maybeWrite(output, fileBytes[fset.Position(lastPos).Offset:])
-
-	if *overwrite && diffs > 0 {
-		err = ioutil.WriteFile(path, output.Bytes(), 0)
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return diffs, nil
+	return diffs, output, nil
 }
