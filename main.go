@@ -67,12 +67,12 @@ func main() {
 	root, err := filepath.Abs(flag.Arg(0))
 	if err != nil {
 		fmt.Printf("Error finding absolute path: %s", err)
-		return
+		os.Exit(1)
 	}
 	root, err = filepath.EvalSymlinks(root)
 	if err != nil {
 		fmt.Printf("Error following symlinks in input path: %s", err)
-		return
+		os.Exit(1)
 	}
 
 	var ignoreRE *regexp.Regexp
@@ -80,7 +80,7 @@ func main() {
 		ignoreRE, err = regexp.Compile(*ignore)
 		if err != nil {
 			fmt.Printf("Error compiling ignore regexp: %s", err)
-			return
+			os.Exit(1)
 		}
 	}
 
