@@ -43,7 +43,7 @@ var (
 
 func main() {
 	flag.Parse()
-	if len(flag.Args()) != 1 {
+	if flag.NArg() == 0 {
 		content, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -62,6 +62,11 @@ func main() {
 			os.Exit(1)
 		}
 		return
+	}
+
+	if flag.NArg() > 1 {
+		fmt.Println("must specify exactly one path argument (or zero for stdin)")
+		os.Exit(1)
 	}
 
 	root, err := filepath.Abs(flag.Arg(0))
