@@ -173,7 +173,7 @@ func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
 		}
 		// If goimports made any change, count that as a diff so the file
 		// can be overwritten at the end.
-		if bytes.Compare(fileBytes, newFileBytes) != 0 && *printDiff {
+		if *printDiff && bytes.Compare(fileBytes, newFileBytes) != 0 {
 			fmt.Printf("%s: import list mismatch\n", path)
 			diffs = 1
 		}
