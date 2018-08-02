@@ -63,3 +63,8 @@ func someSigWithLongArgsAndElidedTypeShorthand(
 	someLoooooooooooooooooooooooooooooooooooooooooooooooooooooooog int,
 ) {
 }
+
+func (h *txnHeartbeat) finalTxnStatsLocked() (duration, restarts int64, status roachpb.TransactionStatus) {
+	return
+}
+

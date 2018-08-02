@@ -253,14 +253,20 @@ func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
 			curFunc.Reset()
 			// colOffset - 1 accounts for `func (r *foo) bar(`
 			colOffset := fset.Position(opening).Column - 1
-			if colOffset+len(paramsJoined)+len(funcMid)+len(resultsJoined)+len(funcEnd)+brace <= *wrap {
+			singleLineLen := colOffset + len(paramsJoined) + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
+			if singleLineLen <= *wrap {
 				curFunc.Write(paramsJoined)
 				curFunc.WriteString(funcMid)
 				curFunc.Write(resultsJoined)
 				curFunc.WriteString(funcEnd)
 			} else {
+				// we're into wrapping, so the return types block usually starts on own
+				// line intended by `tab`.
+				resTypeStartingCol := *tab
 				if len(params.List) == 0 {
-					// pass
+					// special case: if we have no params, the res type starts on the same
+					// line rather than on its own.
+					resTypeStartingCol = colOffset
 				} else if *tab+len(paramsJoined)+len(paramsLineEndComma) <= *wrap {
 					fmt.Fprintf(&curFunc, "\n\t%s,\n", paramsJoined)
 				} else {
@@ -269,12 +275,12 @@ func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
 					}
 					curFunc.WriteByte('\n')
 				}
-				if *tab+len(funcMid)+len(resultsJoined)+len(funcEnd)+brace <= *wrap {
-					curFunc.WriteString(funcMid)
+				curFunc.WriteString(funcMid)
+				singleLineRetunsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
+				if singleLineRetunsLen <= *wrap {
 					curFunc.Write(resultsJoined)
 					curFunc.WriteString(funcEnd)
 				} else {
-					curFunc.WriteString(funcMid)
 					for _, result := range results.List {
 						fmt.Fprintf(&curFunc, "\n\t%s,", fileSlice(result.Pos(), result.End()))
 					}
