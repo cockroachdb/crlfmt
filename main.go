@@ -29,7 +29,7 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/ttycolor"
-	"golang.org/x/tools/imports"
+	"github.com/cockroachdb/gostdlib/x/tools/imports"
 )
 
 var (
