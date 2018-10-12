@@ -26,19 +26,28 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
-	"github.com/cockroachdb/ttycolor"
+	"github.com/cockroachdb/gostdlib/go/format"
 	"github.com/cockroachdb/gostdlib/x/tools/imports"
+	"github.com/cockroachdb/ttycolor"
 )
 
 var (
-	wrap      = flag.Int("wrap", 100, "column to wrap at")
-	tab       = flag.Int("tab", 8, "tab width for column calculations")
-	overwrite = flag.Bool("w", false, "overwrite modified files")
-	fast      = flag.Bool("fast", false, "skip running goimports")
-	printDiff = flag.Bool("diff", true, "print diffs")
-	ignore    = flag.String("ignore", "", "regex matching files to skip")
+	wrap         = flag.Int("wrap", 100, "column to wrap at")
+	tab          = flag.Int("tab", 8, "tab width for column calculations")
+	overwrite    = flag.Bool("w", false, "overwrite modified files")
+	fast         = flag.Bool("fast", false, "skip running goimports")
+	groupImports = flag.Bool("groupimports", false, "group imports by type")
+	printDiff    = flag.Bool("diff", true, "print diffs")
+	ignore       = flag.String("ignore", "", "regex matching files to skip")
+)
+
+var (
+	red   = string(ttycolor.StdoutProfile[ttycolor.Red])
+	green = string(ttycolor.StdoutProfile[ttycolor.Green])
+	reset = string(ttycolor.StdoutProfile[ttycolor.Reset])
 )
 
 func main() {
@@ -126,10 +135,35 @@ func maybeWrite(output *bytes.Buffer, b []byte) {
 	}
 }
 
-func getColors() (string, string, string) {
-	return string(ttycolor.StdoutProfile[ttycolor.Red]),
-		string(ttycolor.StdoutProfile[ttycolor.Green]),
-		string(ttycolor.StdoutProfile[ttycolor.Reset])
+func maybePrintDiff(where token.Position, old, new []byte) {
+	if *printDiff {
+		fmt.Printf("%s:%d\n", where.Filename, where.Line)
+		if old != nil {
+			for _, line := range bytes.Split(old, []byte{'\n'}) {
+				fmt.Printf("%s-%s%s\n", red, line, reset)
+			}
+		}
+		if new != nil {
+			for _, line := range bytes.Split(new, []byte{'\n'}) {
+				fmt.Printf("%s+%s%s\n", green, line, reset)
+			}
+		}
+		fmt.Println()
+	}
+}
+
+func importPath(spec ast.Spec) string {
+	if t, err := strconv.Unquote(spec.(*ast.ImportSpec).Path.Value); err == nil {
+		return t
+	}
+	return ""
+}
+
+func concat(bs ...[]byte) (out []byte) {
+	for _, b := range bs {
+		out = append(out, b...)
+	}
+	return
 }
 
 func checkPath(path string) (int, error) {
@@ -181,7 +215,7 @@ func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
 	}
 
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, fileBytes, parser.AllErrors)
+	f, err := parser.ParseFile(fset, path, fileBytes, parser.AllErrors|parser.ParseComments)
 	if err != nil {
 		return 0, output, err
 	}
@@ -190,12 +224,118 @@ func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
 		return fileBytes[fset.Position(beg).Offset:fset.Position(end).Offset]
 	}
 
+	var (
+		stdlibImports     []*ast.ImportSpec
+		thirdPartyImports []*ast.ImportSpec
+		firstPartyImports []*ast.ImportSpec
+	)
+
+	for _, imp := range f.Imports {
+		switch impPath := importPath(imp); {
+		case impPath == "C":
+			continue
+		case !strings.Contains(impPath, "."):
+			stdlibImports = append(stdlibImports, imp)
+		case strings.HasPrefix(impPath, "github.com/cockroachdb"):
+			firstPartyImports = append(firstPartyImports, imp)
+		default:
+			thirdPartyImports = append(thirdPartyImports, imp)
+		}
+	}
+
+	renderImports := func(b *bytes.Buffer, imps []*ast.ImportSpec) {
+		for _, imp := range imps {
+			if imp.Doc != nil {
+				b.WriteByte('\t')
+				b.Write(fileSlice(imp.Doc.Pos(), imp.Doc.End()))
+				b.WriteByte('\n')
+			}
+			b.WriteByte('\t')
+			if imp.Name != nil {
+				b.WriteString(imp.Name.String())
+				b.WriteByte(' ')
+			}
+			b.WriteString(imp.Path.Value)
+			if imp.Comment != nil {
+				b.WriteByte(' ')
+				b.Write(fileSlice(imp.Comment.Pos(), imp.Comment.End()))
+			}
+			b.WriteByte('\n')
+		}
+		if len(imps) > 0 {
+			b.WriteByte('\n')
+		}
+	}
+
 	var curFunc bytes.Buffer
-
-	red, green, reset := getColors()
-
+	var seenImportDecl bool
 	lastPos := token.NoPos
+outer:
 	for _, d := range f.Decls {
+		if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.IMPORT && *groupImports {
+			for _, spec := range g.Specs {
+				if importPath(spec) == "C" {
+					// "C" is a very special import as it causes the comment
+					// on the gen decl to be interpreted as C code that is
+					// compiled and linked into the binary. Best to just leave
+					// this import block alone.
+					continue outer
+				}
+			}
+
+			numImports := len(stdlibImports) + len(thirdPartyImports) + len(firstPartyImports)
+			if seenImportDecl || numImports == 0 {
+				// We've already output all of the imports in the first import
+				// block. All other import blocks should be removed.
+				//
+				// If the import block is surrounded by blank lines, remove
+				// the blank lines too.
+				startPos, endPos := g.Pos(), g.End()
+				if off := fset.Position(startPos).Offset; off-2 >= 0 && fileBytes[off-1] == '\n' && fileBytes[off-2] == '\n' {
+					startPos = fset.File(startPos).Pos(off - 1)
+				}
+				if off := fset.Position(g.End()).Offset; off+1 < len(fileBytes) && fileBytes[off] == '\n' && fileBytes[off+1] == '\n' {
+					endPos = fset.File(endPos).Pos(off + 1)
+				}
+				maybeWrite(output, fileSlice(lastPos, startPos))
+				lastPos = endPos
+				maybePrintDiff(fset.Position(startPos), fileSlice(startPos, lastPos), nil)
+				diffs++
+				continue
+			}
+
+			// This is the first import block. Render all of the imports grouped
+			// by type, sorted alphabetically within each group, and with blank
+			// lines between each group, unless there aren't any imports to
+			// render.
+			maybeWrite(output, fileSlice(lastPos, g.Pos()))
+			lastPos = g.End()
+			var importBuf bytes.Buffer
+			importBuf.WriteString("import ")
+			if numImports > 1 {
+				importBuf.WriteString("(\n")
+			}
+			renderImports(&importBuf, stdlibImports)
+			renderImports(&importBuf, thirdPartyImports)
+			renderImports(&importBuf, firstPartyImports)
+			importBuf.Truncate(importBuf.Len() - 1) // trim trailing blank line
+			if numImports > 1 {
+				importBuf.WriteByte(')')
+			}
+			newImports, err := format.Source(importBuf.Bytes())
+			if err != nil {
+				return 0, nil, fmt.Errorf("grouping imports for %s: %s", path, err)
+			}
+			if numImports == 1 {
+				newImports = newImports[:len(newImports)-1] // trim trailing newline
+			}
+			if !bytes.Equal(fileSlice(g.Pos(), g.End()), newImports) {
+				maybePrintDiff(fset.Position(g.Pos()), fileSlice(g.Pos(), g.End()), newImports)
+				diffs++
+			}
+			maybeWrite(output, newImports)
+			seenImportDecl = true
+		}
 		if f, ok := d.(*ast.FuncDecl); ok {
 			params := f.Type.Params
 			results := f.Type.Results
@@ -292,17 +432,8 @@ func checkBuf(path string, fileBytes []byte) (int, *bytes.Buffer, error) {
 
 			oldFunc := fileSlice(opening, closing)
 			if !bytes.Equal(oldFunc, curFunc.Bytes()) {
-				if *printDiff {
-					prefix := string(fileBytes[fset.Position(d.Pos()).Offset:fset.Position(opening).Offset])
-					fmt.Printf("%s:%d\n", path, fset.Position(d.Pos()).Line)
-					for _, line := range strings.Split(prefix+string(oldFunc), "\n") {
-						fmt.Printf("%s-%s%s\n", red, line, reset)
-					}
-					for _, line := range strings.Split(prefix+curFunc.String(), "\n") {
-						fmt.Printf("%s+%s%s\n", green, line, reset)
-					}
-					fmt.Print("\n")
-				}
+				prefix := fileSlice(d.Pos(), opening)
+				maybePrintDiff(fset.Position(d.Pos()), concat(prefix, oldFunc), concat(prefix, curFunc.Bytes()))
 				diffs++
 				maybeWrite(output, curFunc.Bytes())
 			} else {
