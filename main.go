@@ -310,6 +310,22 @@ outer:
 			// render.
 			maybeWrite(output, fileSlice(lastPos, g.Pos()))
 			lastPos = g.End()
+			if !g.Lparen.IsValid() {
+				// Handling a non-block import with a line comment
+				//
+				//     import "foo" // comment
+				//                ^
+				// requires special care. g.End() will point to the end of the
+				// import path, indicated with a caret in the diagram above. We
+				// need to advance the end position to the end of the comment.
+				// Otherwise we'll double output the comment: once when we
+				// render the import and again in the next turn of the loop when
+				// we write out everything from the end of the import block to
+				// the start of the next decl.
+				if comment := g.Specs[0].(*ast.ImportSpec).Comment; comment != nil {
+					lastPos = comment.End()
+				}
+			}
 			var importBuf bytes.Buffer
 			importBuf.WriteString("import ")
 			if numImports > 1 {
@@ -329,8 +345,8 @@ outer:
 			if numImports == 1 {
 				newImports = newImports[:len(newImports)-1] // trim trailing newline
 			}
-			if !bytes.Equal(fileSlice(g.Pos(), g.End()), newImports) {
-				maybePrintDiff(fset.Position(g.Pos()), fileSlice(g.Pos(), g.End()), newImports)
+			if !bytes.Equal(fileSlice(g.Pos(), lastPos), newImports) {
+				maybePrintDiff(fset.Position(g.Pos()), fileSlice(g.Pos(), lastPos), newImports)
 				diffs++
 			}
 			maybeWrite(output, newImports)
