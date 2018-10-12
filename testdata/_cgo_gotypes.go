@@ -5,11 +5,12 @@
 
 package rocksdb
 
-import "unsafe"
+import (
+	"syscall"
+	"unsafe"
 
-import _ "runtime/cgo"
-
-import "syscall"
+	"github.com/cockroachdb/cockroach/pkg/roachpb"
+)
 
 var _ syscall.Errno
 
