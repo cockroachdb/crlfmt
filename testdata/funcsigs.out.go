@@ -18,6 +18,17 @@ func someSignatureWithLongResults(
 	return "", "", "", "", ""
 }
 
+func someSignatureWithVeryLongResults(
+	someArg, someOtherArg string,
+) (
+	iAmLong string,
+	andIAmLongToo string,
+	andIAmAlsoLong string,
+	butEspeciallyThisParameterIsLong string,
+) {
+	return "", "", "", "", ""
+}
+
 func someSigWithLongArgs(
 	someArg string,
 	someOtherArg string,
@@ -42,3 +53,63 @@ func updateStatsOnPut(
 	origMetaKeySize, origMetaValSize, metaKeySize, metaValSize int64,
 	orig, meta *int,
 ) int
+
+func mvccPutProto(
+	ctx string,
+	engine string,
+	ms string, // can be nil as the key is unreplicated and doesn't affect stats
+	key string,
+	timestamp string,
+	// long-form documentation about txn
+	// that spans multiple lines
+	txn string,
+	// message has a comment both above
+	message string, // and on the line
+) error
+
+func mvccPutProtoShort(
+	// This comment should force a reflow so that it can more clearly refer to
+	// just a and not the following parameter.
+	a string,
+	someLoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong int,
+)
+
+func paramsComments1(
+	/* ba */
+	a int, /* aa */
+	b string, /* ab */
+	c int, /* ac */
+)
+
+func paramsComments2(
+	a int, /* after a */
+	b string, /* after
+	   b
+	   with
+	   newlines
+	*/
+	c []byte,
+)
+
+func resultsComments1() (
+	/* ba */
+	a int, /* aa */
+	b string, /* ab */
+	c int, /* ac */
+)
+
+func resultsComments2() (
+	a int, /* after a */
+	b string, /* after
+	   b
+	   with
+	   newlines
+	*/
+	c []byte,
+)
+
+// docstring should stay as a docstring
+func docstringWithParam(a string)
+
+// docstring should stay as a docstring
+func docstringWithResult() string

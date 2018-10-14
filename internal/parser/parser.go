@@ -42,6 +42,8 @@ func ParseFile(name string, src []byte) (*File, error) {
 		return nil, err
 	}
 
+	cr := commentListReader{fset: fset, comments: file.Comments}
+
 	var decls []Decl
 	for _, d := range file.Decls {
 		if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.IMPORT {
@@ -79,6 +81,13 @@ func ParseFile(name string, src []byte) (*File, error) {
 			decls = append(decls, &impDecl)
 		} else if f, ok := d.(*ast.FuncDecl); ok {
 			decls = append(decls, &FuncDecl{*f})
+
+			if f.Type != nil {
+				assocFieldListComments(&cr, f.Type.Params)
+				if f.Type.Results != nil {
+					assocFieldListComments(&cr, f.Type.Results)
+				}
+			}
 		}
 	}
 

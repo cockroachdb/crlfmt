@@ -17,8 +17,8 @@ package render
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"go/ast"
+	"io"
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 )
@@ -99,14 +99,22 @@ func Imports(w io.Writer, f *parser.File, block ImportBlock) {
 	}
 }
 
-func renderFuncParam(w io.Writer, f *parser.File, param *ast.Field) {
+func renderLineFuncField(w io.Writer, f *parser.File, param *ast.Field) {
+	if param.Doc != nil {
+		fmt.Fprintf(w, "\t%s\n", f.Slice(param.Doc.Pos(), param.Doc.End()))
+	}
+	fmt.Fprint(w, "\t")
 	for i, n := range param.Names {
 		if i > 0 {
 			fmt.Fprint(w, ", ")
 		}
 		fmt.Fprint(w, n.Name)
 	}
-	fmt.Fprintf(w, " %s", f.Slice(param.Type.Pos(), param.Type.End()))
+	fmt.Fprintf(w, " %s,", f.Slice(param.Type.Pos(), param.Type.End()))
+	if param.Comment != nil {
+		fmt.Fprintf(w, " %s", f.Slice(param.Comment.Pos(), param.Comment.End()))
+	}
+	fmt.Fprintln(w)
 }
 
 // Func renders the function fn into w. The function is wrapped so that no line
@@ -159,11 +167,27 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 		brace = len(` {`)
 	}
 
+	var paramsHaveComments, resultsHaveComments bool
+	for _, p := range params.List {
+		if p.Doc != nil || p.Comment != nil {
+			paramsHaveComments = true
+			break
+		}
+	}
+	if results != nil {
+		for _, r := range results.List {
+			if r.Doc != nil || r.Comment != nil {
+				resultsHaveComments = true
+				break
+			}
+		}
+	}
+
 	w.Write(f.Slice(fn.Pos(), opening))
 	// colOffset - 1 accounts for `func (r *foo) bar(`
 	colOffset := f.Position(opening).Column - 1
 	singleLineLen := colOffset + len(paramsJoined) + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
-	if singleLineLen <= wrapCol {
+	if singleLineLen <= wrapCol && !paramsHaveComments && !resultsHaveComments {
 		w.Write(paramsJoined)
 		fmt.Fprint(w, funcMid)
 		w.Write(resultsJoined)
@@ -176,26 +200,24 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 			// special case: if we have no params, the res type starts on the same
 			// line rather than on its own.
 			resTypeStartingCol = colOffset
-		} else if tabSize+len(paramsJoined)+len(paramsLineEndComma) <= wrapCol {
+		} else if tabSize+len(paramsJoined)+len(paramsLineEndComma) <= wrapCol && !paramsHaveComments {
 			fmt.Fprintf(w, "\n\t%s,\n", paramsJoined)
 		} else {
 			fmt.Fprintln(w)
 			for _, param := range params.List {
-				fmt.Fprint(w, "\t")
-				renderFuncParam(w, f, param)
-				fmt.Fprintf(w, ",\n")
+				renderLineFuncField(w, f, param)
 			}
 		}
 		fmt.Fprint(w, funcMid)
 		singleLineRetunsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
-		if singleLineRetunsLen <= wrapCol {
+		if singleLineRetunsLen <= wrapCol && !resultsHaveComments {
 			w.Write(resultsJoined)
 			fmt.Fprint(w, funcEnd)
 		} else {
-			for _, r := range results.List {
-				fmt.Fprintf(w, "\n\t%s,", f.Slice(r.Pos(), r.End()))
-			}
 			fmt.Fprintln(w)
+			for _, result := range results.List {
+				renderLineFuncField(w, f, result)
+			}
 			fmt.Fprint(w, funcEnd)
 		}
 	}
