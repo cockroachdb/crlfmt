@@ -36,3 +36,9 @@ type fooObj struct{}
 func (f *fooObj) finalTxnStatsLocked() (duration, restarts int64, status int64) {
 	return
 }
+
+func updateStatsOnPut(
+	key []byte,
+	origMetaKeySize, origMetaValSize, metaKeySize, metaValSize int64,
+	orig, meta *int,
+) int

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"go/ast"
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 )
@@ -98,6 +99,16 @@ func Imports(w io.Writer, f *parser.File, block ImportBlock) {
 	}
 }
 
+func renderFuncParam(w io.Writer, f *parser.File, param *ast.Field) {
+	for i, n := range param.Names {
+		if i > 0 {
+			fmt.Fprint(w, ", ")
+		}
+		fmt.Fprint(w, n.Name)
+	}
+	fmt.Fprintf(w, " %s", f.Slice(param.Type.Pos(), param.Type.End()))
+}
+
 // Func renders the function fn into w. The function is wrapped so that no line
 // exceeds past the wrap column wrapCol when tabs are rendered with specified
 // tab size.
@@ -168,10 +179,12 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 		} else if tabSize+len(paramsJoined)+len(paramsLineEndComma) <= wrapCol {
 			fmt.Fprintf(w, "\n\t%s,\n", paramsJoined)
 		} else {
-			for _, param := range params.List {
-				fmt.Fprintf(w, "\n\t%s,", f.Slice(param.Pos(), param.End()))
-			}
 			fmt.Fprintln(w)
+			for _, param := range params.List {
+				fmt.Fprint(w, "\t")
+				renderFuncParam(w, f, param)
+				fmt.Fprintf(w, ",\n")
+			}
 		}
 		fmt.Fprint(w, funcMid)
 		singleLineRetunsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
