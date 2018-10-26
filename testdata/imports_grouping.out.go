@@ -5,9 +5,8 @@ import (
 	"b"
 
 	"elsewhere.com/fake/e"
-	"github.com/fake/d"
-
 	"github.com/cockroachdb/fake/c"
+	"github.com/fake/d"
 )
 
 var _ = a.Foo

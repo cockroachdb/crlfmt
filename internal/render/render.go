@@ -19,12 +19,18 @@ import (
 	"fmt"
 	"go/ast"
 	"io"
+	"sort"
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 )
 
-// An ImportGroup is a collection of related imports.
+// An ImportGroup is a collection of related imports. It implements
+// sort.Interface to sort imports by path.
 type ImportGroup []parser.ImportSpec
+
+func (ig ImportGroup) Len() int { return len(ig) }
+func (ig ImportGroup) Less(i, j int) bool { return ig[i].Path() < ig[j].Path() }
+func (ig ImportGroup) Swap(i, j int) { ig[i], ig[j] = ig[j], ig[i] }
 
 // An ImportBlock is a collectino of ImportGroups.
 type ImportBlock []ImportGroup
@@ -39,6 +45,8 @@ func (b ImportBlock) Size() int {
 }
 
 func renderImportGroup(w io.Writer, f *parser.File, group ImportGroup) {
+	group = append(ImportGroup(nil), group...)
+	sort.Sort(group)
 	for i, imp := range group {
 		if i > 0 {
 			fmt.Fprintln(w)

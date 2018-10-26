@@ -230,30 +230,27 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 // that the import declaration should be removed entirely.
 //
 // The goal is to have just one import declaration, within which imports are
-// grouped into standard library imports, third party imports, and first party
-// imports. An exception is made for cgo, whose "C" psuedo-imports are extracted
-// into separate import declarations.
+// grouped standard library imports and non-standard library imports. An
+// exception is made for cgo, whose "C" psuedo-imports are extracted into
+// separate import declarations.
 func remapImports(file *parser.File) map[*parser.ImportDecl][]render.ImportBlock {
 	var (
-		stdlibImports     []parser.ImportSpec
-		thirdPartyImports []parser.ImportSpec
-		firstPartyImports []parser.ImportSpec
+		stdlibImports []parser.ImportSpec
+		otherImports  []parser.ImportSpec
 	)
 
 	for _, imp := range file.ImportSpecs() {
 		switch impPath := imp.Path(); {
 		case impPath == "C":
 			continue
-		case !strings.Contains(impPath, "."):
-			stdlibImports = append(stdlibImports, imp)
-		case strings.HasPrefix(impPath, "github.com/cockroachdb"):
-			firstPartyImports = append(firstPartyImports, imp)
+		case strings.Contains(impPath, "."):
+			otherImports = append(otherImports, imp)
 		default:
-			thirdPartyImports = append(thirdPartyImports, imp)
+			stdlibImports = append(stdlibImports, imp)
 		}
 	}
 
-	mainBlock := render.ImportBlock{stdlibImports, thirdPartyImports, firstPartyImports}
+	mainBlock := render.ImportBlock{stdlibImports, otherImports}
 	needMainBlock := mainBlock.Size() > 0
 
 	mapping := map[*parser.ImportDecl][]render.ImportBlock{}
