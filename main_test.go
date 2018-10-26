@@ -27,9 +27,6 @@ func TestCheckPath(t *testing.T) {
 	defer func(old bool) { *printDiff = old }(*printDiff)
 	*printDiff = false
 
-	defer func(old bool) { *groupImports = old }(*groupImports)
-	*groupImports = true
-
 	files, err := filepath.Glob("testdata/*.in.go")
 	if err != nil {
 		t.Fatal(err)

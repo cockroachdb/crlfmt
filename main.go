@@ -38,7 +38,7 @@ var (
 	tab          = flag.Int("tab", 8, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
 	fast         = flag.Bool("fast", false, "skip running goimports")
-	groupImports = flag.Bool("groupimports", false, "group imports by type")
+	groupImports = flag.Bool("groupimports", true, "group imports by type")
 	printDiff    = flag.Bool("diff", true, "print diffs")
 	ignore       = flag.String("ignore", "", "regex matching files to skip")
 )
