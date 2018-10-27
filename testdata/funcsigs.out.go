@@ -56,6 +56,16 @@ func someSigWithMisIndentedArgsNoNames________________________(
 	string,
 )
 
+func noParamsLongReturn() func(thisReturnParameterIsSoLongThatItWantsItsOwnLineButGofmtWontAllowIt int)
+
+func shortParamsLongReturn(
+	a int,
+) func(thisReturnParameterIsSoLongThatItWantsItsOwnLineEvenThoughArgsAreShort int)
+
+func longParamsLongReturn(
+	loooooooooooooooooooooooooooooooooooooooooooooooooooooong string, long2 int,
+) func(thisReturnParameterIsSoLongThatItWantsItsOwnLineButGofmtWontAllowIt_________________________ int)
+
 type fooObj struct{}
 
 func (f *fooObj) finalTxnStatsLocked() (duration, restarts int64, status int64) {

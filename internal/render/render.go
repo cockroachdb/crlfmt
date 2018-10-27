@@ -153,6 +153,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 	const paramsLineEndComma = `,`
 
 	var resultsBuf bytes.Buffer
+	var exactlyOneResult bool
 	if results != nil {
 		resultsPrefix := ""
 		for _, r := range results.List {
@@ -160,6 +161,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 			resultsBuf.Write(f.Slice(r.Pos(), r.End()))
 			resultsPrefix = ", "
 		}
+		exactlyOneResult = len(results.List) == 1 && len(results.List[0].Names) == 0
 	}
 	resultsJoined := resultsBuf.Bytes()
 
@@ -168,7 +170,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 	if results == nil || len(results.List) == 0 {
 		funcMid = `)`
 		funcEnd = ``
-	} else if len(results.List) == 1 && len(results.List[0].Names) == 0 {
+	} else if exactlyOneResult {
 		funcMid = `) `
 		funcEnd = ``
 	}
@@ -220,8 +222,8 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 			}
 		}
 		fmt.Fprint(w, funcMid)
-		singleLineRetunsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
-		if singleLineRetunsLen <= wrapCol && !resultsHaveComments {
+		singleLineResultsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
+		if (singleLineResultsLen <= wrapCol || exactlyOneResult) && !resultsHaveComments {
 			w.Write(resultsJoined)
 			fmt.Fprint(w, funcEnd)
 		} else {
