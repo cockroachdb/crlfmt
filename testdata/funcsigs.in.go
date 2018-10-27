@@ -28,11 +28,39 @@ func someSigWithLongArgsAndElidedTypeShorthand(
 ) {
 }
 
+func someSigWithMisIndentedArgs________________________(
+	  thereAreTwoSpacesBeforeThisArgWhenThereShouldBeJustATab string,
+) (
+	  thereAreTwoSpacesBeforeThisArgWhenThereShouldBeJustATab string,
+	  weDefinitelyNeedAnotherLineForTheseReturnParams int,
+)
+
+func someSigWithMisIndentedArgsNoNames________________________(
+	  func(iAmSuperLooooooooong_____________________________________________________________________),
+) (
+	  func(iAmSuperLooooooooong_____________________________________________________________________),
+	  string,
+)
+
 type fooObj struct{}
 
 func (f *fooObj) finalTxnStatsLocked() (duration, restarts int64, status int64) {
 	return
 }
+
+func (f *fooObj) someSigWithMisIndentedArgs________________________(
+	  thereAreTwoSpacesBeforeThisArgWhenThereShouldBeJustATab string,
+) (
+	  thereAreTwoSpacesBeforeThisArgWhenThereShouldBeJustATab string,
+	  weDefinitelyNeedAnotherLineForTheseReturnParams int,
+)
+
+func (f *fooObj) someSigWithMisIndentedArgsNoNames________________________(
+	  func(iAmSuperLooooooooong_____________________________________________________________________),
+) (
+	  func(iAmSuperLooooooooong_____________________________________________________________________),
+	  string,
+)
 
 func updateStatsOnPut(
 	key []byte,

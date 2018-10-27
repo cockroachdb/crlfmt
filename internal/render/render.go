@@ -118,7 +118,10 @@ func renderLineFuncField(w io.Writer, f *parser.File, param *ast.Field) {
 		}
 		fmt.Fprint(w, n.Name)
 	}
-	fmt.Fprintf(w, " %s,", f.Slice(param.Type.Pos(), param.Type.End()))
+	if len(param.Names) > 0 {
+		fmt.Fprint(w, " ")
+	}
+	fmt.Fprintf(w, "%s,", f.Slice(param.Type.Pos(), param.Type.End()))
 	if param.Comment != nil {
 		fmt.Fprintf(w, " %s", f.Slice(param.Comment.Pos(), param.Comment.End()))
 	}
