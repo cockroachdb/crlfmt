@@ -125,12 +125,14 @@ func checkPath(path string) error {
 	}
 
 	if !bytes.Equal(src, output) {
-		data, err := diff(src, output, path)
-		if err != nil {
-			return fmt.Errorf("computing diff: %s", err)
+		if *printDiff {
+			data, err := diff(src, output, path)
+			if err != nil {
+				return fmt.Errorf("computing diff: %s", err)
+			}
+			fmt.Printf("diff -u old/%[1]s new/%[1]s\n", filepath.ToSlash(path))
+			os.Stdout.Write(data)
 		}
-		fmt.Printf("diff -u old/%[1]s new/%[1]s\n", filepath.ToSlash(path))
-		os.Stdout.Write(data)
 
 		if *overwrite {
 			err := ioutil.WriteFile(path, output, 0)
