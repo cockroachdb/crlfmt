@@ -10,7 +10,7 @@ $ crlfmt [flags] <file path>
 
 Flags:
   -diff             print diffs (default true)
-  -fast             skip running goimports
+  -fast             skip running goimports and simplify
   -groupimports     group imports by type (default true)
   -ignore <string>  regex matching files to skip
   -tab <int>        tab width for column calculations (default 2)
