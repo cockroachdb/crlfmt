@@ -35,7 +35,7 @@ import (
 
 var (
 	wrap         = flag.Int("wrap", 100, "column to wrap at")
-	tab          = flag.Int("tab", 8, "tab width for column calculations")
+	tab          = flag.Int("tab", 2, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
 	fast         = flag.Bool("fast", false, "skip running goimports")
 	groupImports = flag.Bool("groupimports", true, "group imports by type")
