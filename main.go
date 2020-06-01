@@ -19,6 +19,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	goparser "go/parser"
+	"go/printer"
 	"go/token"
 	"io/ioutil"
 	"os"
@@ -37,7 +39,7 @@ var (
 	wrap         = flag.Int("wrap", 100, "column to wrap at")
 	tab          = flag.Int("tab", 2, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
-	fast         = flag.Bool("fast", false, "skip running goimports")
+	fast         = flag.Bool("fast", false, "skip running goimports and simplify")
 	groupImports = flag.Bool("groupimports", true, "group imports by type")
 	printDiff    = flag.Bool("diff", true, "print diffs")
 	ignore       = flag.String("ignore", "", "regex matching files to skip")
@@ -160,6 +162,19 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 			return nil, err
 		}
 		src = newSrc
+
+		// Simplify
+		{
+			fileSet := token.NewFileSet()
+			f, err := goparser.ParseFile(fileSet, path, src, goparser.ParseComments)
+			if err != nil {
+				return nil, err
+			}
+			render.Simplify(f)
+			var buf bytes.Buffer
+			printer.Fprint(&buf, fileSet, f)
+			src = buf.Bytes()
+		}
 	}
 
 	file, err := parser.ParseFile(path, src)
