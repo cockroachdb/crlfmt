@@ -1,6 +1,6 @@
 # crlfmt
 
-`crlfmt` is a `gofmt`-style linter for Go code that enforces the CockroachDB Style Guide found [here](https://github.com/cockroachdb/cockroach/blob/master/STYLE.md).
+`crlfmt` is a `gofmt`-style linter for Go code that enforces the CockroachDB Style Guide found [here](https://wiki.crdb.io/wiki/spaces/CRDB/pages/181371303/Go+coding+guidelines).
 
 ## Usage
 
