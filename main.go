@@ -43,6 +43,7 @@ var (
 	groupImports = flag.Bool("groupimports", true, "group imports by type")
 	printDiff    = flag.Bool("diff", true, "print diffs")
 	ignore       = flag.String("ignore", "", "regex matching files to skip")
+	srcDir       = flag.String("srcdir", "", "resolve imports as if the source file is from the given directory (if a file is given, the parent directory is used)")
 )
 
 var (
@@ -157,7 +158,18 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 			TabWidth:   *tab,
 			FormatOnly: false,
 		}
-		newSrc, err := imports.Process(path, src, &importOpts)
+
+		pathForImports := path
+		if *srcDir != "" {
+			filename := filepath.Base(path)
+			if isDirectory(*srcDir) {
+				pathForImports = filepath.Join(*srcDir, filename)
+			} else {
+				pathForImports = filepath.Join(filepath.Dir(*srcDir), filename)
+			}
+		}
+
+		newSrc, err := imports.Process(pathForImports, src, &importOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -298,4 +310,14 @@ func remapImports(file *parser.File) map[*parser.ImportDecl][]render.ImportBlock
 		mapping[imp] = blocks
 	}
 	return mapping
+}
+
+// isDirectory returns true if the path is a directory. False is
+// returned on any error.
+func isDirectory(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fileInfo.IsDir()
 }
