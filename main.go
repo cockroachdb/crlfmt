@@ -171,8 +171,13 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 				return nil, err
 			}
 			render.Simplify(f)
+
+			prCfg := &printer.Config{
+				Tabwidth: *tab,
+				Mode:     printer.UseSpaces | printer.TabIndent,
+			}
 			var buf bytes.Buffer
-			printer.Fprint(&buf, fileSet, f)
+			prCfg.Fprint(&buf, fileSet, f)
 			src = buf.Bytes()
 		}
 	}
