@@ -23,5 +23,5 @@ Flags:
 If you are running `crlfmt` on the http://github.com/cockroachdb/cockroach codebase, you can use the following command to reformat all files in the current directory, ignoring generated code files:
 
 ```
-$ crlfmt -w -ignore '\.(pb(\.gw)?)|(\.[eo]g)\.go|/testdata/|^sql/parser/sql\.go$|_generated\.go$' .
+$ crlfmt -w -ignore '\.(pb(\.gw)?)|(\.[eo]g)\.go|/testdata/|^sql/parser/sql\.go$|_generated(_test)?\.go$' .
 ```
