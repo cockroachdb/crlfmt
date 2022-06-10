@@ -5,7 +5,7 @@
 ## Usage
 
 ```
-$ go get github.com/cockroachdb/crlfmt
+$ go install github.com/cockroachdb/crlfmt
 $ crlfmt [flags] <file path>
 
 Flags:
