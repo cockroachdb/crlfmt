@@ -15,6 +15,7 @@
 package main
 
 import (
+	"flag"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -23,10 +24,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var rewrite = flag.Bool("rewrite", false, "used to rewrite output")
+
 func TestCheckPath(t *testing.T) {
 	defer func(old bool) { *printDiff = old }(*printDiff)
 	*printDiff = false
-
+	*tab = 8
+	*groupImports = false
 	files, err := filepath.Glob("testdata/*.in.go")
 	if err != nil {
 		t.Fatal(err)
@@ -37,15 +41,22 @@ func TestCheckPath(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			expBytes, err := ioutil.ReadFile(strings.Replace(file, ".in.go", ".out.go", -1))
-			if err != nil {
-				t.Fatal(err)
-			}
+			outFile := strings.Replace(file, ".in.go", ".out.go", -1)
+
 			output, err := checkBuf(file, inBytes)
 			if err != nil {
 				t.Fatal(err)
 			}
-			require.Equal(t, string(expBytes), string(output))
+			if *rewrite {
+				err := ioutil.WriteFile(outFile, output, 0666)
+				require.NoError(t, err)
+			} else {
+				expBytes, err := ioutil.ReadFile(outFile)
+				if err != nil {
+					t.Fatal(err)
+				}
+				require.Equal(t, string(expBytes), string(output))
+			}
 		})
 	}
 }

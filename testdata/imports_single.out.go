@@ -1,5 +1,7 @@
 package test
 
-import "a"
+import (
+	"a"
+)
 
 var _ = a.Foo

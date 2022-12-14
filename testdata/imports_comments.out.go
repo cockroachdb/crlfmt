@@ -1,21 +1,36 @@
+// Note that the output here is bogus due to https://go.dev/issues/48688.
+
 package test
 
 // import doc comment to be preserved
 import (
-	"a" // a line comment
-	"b" // b line comment
+	"a"
+	"b"
 	"c"
-	// d doc comment
 	"d"
-	// e doc comment
-	"e" // e line comment
-	// f doc comment
-	"f" // f line comment
-	"g" // g line comment
-	"h"
+	"e"
+	"f"
+	"g"
+	"h" // a line comment
 )
 
 // interleaved comment to be preserved
+
+// import doc block comment to be removed
+
+// b line comment
+
+// d doc comment
+
+// e doc comment
+// e line comment
+
+// f doc comment
+// f line comment
+
+// g line comment
+
+// import doc comment to be deleted; there's nothing sensible we can do with it
 
 var _ = a.Foo
 var _ = b.Foo
