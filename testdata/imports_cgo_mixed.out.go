@@ -1,7 +1,8 @@
 package test
 
-// a doc comment
-import _ "a" // a line comment
-
-// cgo code
-import "C" // why would you ever do this?
+import (
+	// a doc comment
+	_ "a" // a line comment
+	// cgo code
+	"C" // why would you ever do this?
+)

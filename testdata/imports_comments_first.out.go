@@ -1,4 +1,7 @@
 package test
 
-// a doc
-import _ "a" // a line
+// import doc that can't be preserved
+import (
+	// a doc
+	_ "a" // a line
+)

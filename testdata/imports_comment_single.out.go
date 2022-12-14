@@ -1,4 +1,6 @@
 package test
 
-// a doc comment
-import _ "a"
+import (
+	// a doc comment
+	_ "a"
+)

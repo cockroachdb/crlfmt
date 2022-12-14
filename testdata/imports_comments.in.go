@@ -1,8 +1,10 @@
+// Note that the output here is bogus due to https://go.dev/issues/48688.
+
 package test
 
 // import doc comment to be preserved
 import (
-  "a" // a line comment
+	"a" // a line comment
 )
 
 // interleaved comment to be preserved
@@ -24,9 +26,8 @@ import "g" // g line comment
 
 // import doc comment to be deleted; there's nothing sensible we can do with it
 import (
-  "h"
+	"h"
 )
-
 
 var _ = a.Foo
 var _ = b.Foo
