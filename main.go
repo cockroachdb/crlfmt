@@ -96,7 +96,9 @@ func run() error {
 	}
 
 	err = filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		} else if err != nil {
 			return err
 		}
 		if ignoreRE != nil && ignoreRE.MatchString(path) {
