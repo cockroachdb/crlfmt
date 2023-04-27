@@ -18,8 +18,10 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/token"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 )
@@ -131,9 +133,15 @@ func renderLineFuncField(w io.Writer, f *parser.File, param *ast.Field) {
 // Func renders the function fn into w. The function is wrapped so that no line
 // exceeds past the wrap column wrapCol when tabs are rendered with specified
 // tab size.
-func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int) {
+func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapBody, wrapDocString int, lastPos token.Pos) {
 	params := fn.Type.Params
 	results := fn.Type.Results
+
+	if fn.Doc != nil {
+		FuncDocString(w, f, fn, wrapDocString, lastPos)
+	} else {
+		w.Write(f.Slice(lastPos, fn.Type.Pos()))
+	}
 
 	opening := params.Pos() + 1
 	closing := fn.BodyEnd()
@@ -200,7 +208,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 	// colOffset - 1 accounts for `func (r *foo) bar(`
 	colOffset := f.Position(opening).Column - 1
 	singleLineLen := colOffset + len(paramsJoined) + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
-	if singleLineLen <= wrapCol && !paramsHaveComments && !resultsHaveComments {
+	if singleLineLen <= wrapBody && !paramsHaveComments && !resultsHaveComments {
 		w.Write(paramsJoined)
 		fmt.Fprint(w, funcMid)
 		w.Write(resultsJoined)
@@ -213,7 +221,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 			// special case: if we have no params, the res type starts on the same
 			// line rather than on its own.
 			resTypeStartingCol = colOffset
-		} else if tabSize+len(paramsJoined)+len(paramsLineEndComma) <= wrapCol && !paramsHaveComments {
+		} else if tabSize+len(paramsJoined)+len(paramsLineEndComma) <= wrapBody && !paramsHaveComments {
 			fmt.Fprintf(w, "\n\t%s,\n", paramsJoined)
 		} else {
 			fmt.Fprintln(w)
@@ -223,7 +231,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 		}
 		fmt.Fprint(w, funcMid)
 		singleLineResultsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
-		if (singleLineResultsLen <= wrapCol || exactlyOneResult) && !resultsHaveComments {
+		if (singleLineResultsLen <= wrapBody || exactlyOneResult) && !resultsHaveComments {
 			w.Write(resultsJoined)
 			fmt.Fprint(w, funcEnd)
 		} else {
@@ -235,4 +243,52 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapCol int
 		}
 	}
 	w.Write(f.Slice(fn.Type.End(), closing))
+}
+
+func FuncDocString(w io.Writer, f *parser.File, fn *parser.FuncDecl, wrapDocString int, lastPos token.Pos) {
+	w.Write(f.Slice(lastPos, fn.Doc.Pos()))
+	if strings.Fields(fn.Doc.List[0].Text)[0] != "/*" {
+		for i, c := range fn.Doc.List {
+			if len(c.Text) <= wrapDocString {
+				w.Write(f.Slice(c.Pos(), c.End()))
+				if i < len(fn.Doc.List)-1 {
+					w.Write([]byte{'\n'})
+				}
+			} else {
+				// Drop the leading "//"
+				tokens := strings.Fields(c.Text)[1:]
+				var commentLine bytes.Buffer
+				tokenIdx := 0
+				for tokenIdx < len(tokens) {
+					commentLine.Reset()
+					commentLine.WriteString("//")
+					remainingBuf := wrapDocString - 2
+
+					if len(tokens[tokenIdx])+1 >= remainingBuf {
+						commentLine.WriteString(" ")
+						commentLine.WriteString(tokens[tokenIdx])
+						tokenIdx += 1
+					} else {
+						for tokenIdx < len(tokens) && len(tokens[tokenIdx])+1 <= remainingBuf {
+							commentLine.WriteString(" ")
+							remainingBuf -= 1
+							commentLine.WriteString(tokens[tokenIdx])
+							remainingBuf -= len(tokens[tokenIdx])
+							tokenIdx += 1
+						}
+					}
+					w.Write(commentLine.Bytes())
+					if tokenIdx < len(tokens) || i < len(fn.Doc.List)-1 {
+						w.Write([]byte{'\n'})
+					}
+				}
+			}
+		}
+
+	} else {
+		// Multiline comments are unchanged for now.
+		w.Write(f.Slice(fn.Doc.Pos(), fn.Doc.End()))
+	}
+
+	w.Write(f.Slice(fn.Doc.End(), fn.Type.Pos()))
 }

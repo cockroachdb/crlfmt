@@ -36,6 +36,7 @@ import (
 )
 
 var (
+	wrapfndoc    = flag.Int("wrapfndoc", 80, "column to wrap function docstrings at")
 	wrap         = flag.Int("wrap", 100, "column to wrap at")
 	tab          = flag.Int("tab", 2, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
@@ -248,11 +249,10 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 			lastPos = imp.End
 		}
 		if fn, ok := d.(*parser.FuncDecl); ok {
-			output.Write(file.Slice(lastPos, fn.Pos()))
-			lastPos = fn.BodyEnd()
 			var curFunc bytes.Buffer
-			render.Func(&curFunc, file, fn, *tab, *wrap)
+			render.Func(&curFunc, file, fn, *tab, *wrap, *wrapfndoc, lastPos)
 			output.Write(curFunc.Bytes())
+			lastPos = fn.BodyEnd()
 		}
 	}
 	output.Write(src[file.Offset(lastPos):])
