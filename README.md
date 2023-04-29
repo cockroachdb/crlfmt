@@ -16,6 +16,7 @@ Flags:
   -tab <int>        tab width for column calculations (default 2)
   -w                overwrite modified files
   -wrap <int>       column to wrap at (default 100)
+  -wrapfndoc <int>  column to wrap function doc strings at (default 80, ignores multiline comments)
 ```
 
 ## Examples
