@@ -36,7 +36,8 @@ import (
 )
 
 var (
-	wrapfndoc    = flag.Int("wrapfndoc", 80, "column to wrap function docstrings at")
+	// TODO: wrap doc strings for imports and floating comments.
+	wrapdoc      = flag.Int("wrapdoc", 80, "column at which to wrap doc strings for functions, variables, constants, and types. ignores multiline comments denoted by /*")
 	wrap         = flag.Int("wrap", 100, "column to wrap at")
 	tab          = flag.Int("tab", 2, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
@@ -250,9 +251,27 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 		}
 		if fn, ok := d.(*parser.FuncDecl); ok {
 			var curFunc bytes.Buffer
-			render.Func(&curFunc, file, fn, *tab, *wrap, *wrapfndoc, lastPos)
+			render.Func(&curFunc, file, fn, *tab, *wrap, *wrapdoc, lastPos)
 			output.Write(curFunc.Bytes())
 			lastPos = fn.BodyEnd()
+		}
+		if cnst, ok := d.(*parser.ConstDecl); ok {
+			var declBuf bytes.Buffer
+			render.GenDecl(&declBuf, file, cnst.GenDecl, *wrapdoc, lastPos)
+			output.Write(declBuf.Bytes())
+			lastPos = cnst.End()
+		}
+		if vr, ok := d.(*parser.VarDecl); ok {
+			var declBuf bytes.Buffer
+			render.GenDecl(&declBuf, file, vr.GenDecl, *wrapdoc, lastPos)
+			output.Write(declBuf.Bytes())
+			lastPos = vr.End()
+		}
+		if typ, ok := d.(*parser.TypeDecl); ok {
+			var declBuf bytes.Buffer
+			render.GenDecl(&declBuf, file, typ.GenDecl, *wrapdoc, lastPos)
+			output.Write(declBuf.Bytes())
+			lastPos = typ.End()
 		}
 	}
 	output.Write(src[file.Offset(lastPos):])
