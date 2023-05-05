@@ -37,7 +37,7 @@ import (
 
 var (
 	// TODO: wrap doc strings for imports and floating comments.
-	wrapdoc      = flag.Int("wrapdoc", 80, "column at which to wrap doc strings for functions, variables, constants, and types. ignores multiline comments denoted by /*")
+	wrapdoc      = flag.Int("wrapdoc", 160, "column at which to wrap doc strings for functions, variables, constants, and types. ignores multiline comments denoted by /*")
 	wrap         = flag.Int("wrap", 100, "column to wrap at")
 	tab          = flag.Int("tab", 2, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
