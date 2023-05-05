@@ -31,6 +31,7 @@ func TestCheckPath(t *testing.T) {
 	*printDiff = false
 	*tab = 8
 	*groupImports = false
+	*wrapdoc = 80
 	files, err := filepath.Glob("testdata/*.in.go")
 	if err != nil {
 		t.Fatal(err)

@@ -88,6 +88,12 @@ func ParseFile(name string, src []byte) (*File, error) {
 					assocFieldListComments(&cr, f.Type.Results)
 				}
 			}
+		} else if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.CONST {
+			decls = append(decls, &ConstDecl{*g})
+		} else if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.VAR {
+			decls = append(decls, &VarDecl{*g})
+		} else if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.TYPE {
+			decls = append(decls, &TypeDecl{*g})
 		}
 	}
 
@@ -179,5 +185,20 @@ type Decl interface {
 	decl()
 }
 
+type TypeDecl struct {
+	ast.GenDecl
+}
+
+type VarDecl struct {
+	ast.GenDecl
+}
+
+type ConstDecl struct {
+	ast.GenDecl
+}
+
 func (i *ImportDecl) decl() {}
 func (f *FuncDecl) decl()   {}
+func (f *ConstDecl) decl()  {}
+func (f *VarDecl) decl()    {}
+func (f *TypeDecl) decl()   {}

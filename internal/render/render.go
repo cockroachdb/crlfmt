@@ -30,9 +30,9 @@ import (
 // sort.Interface to sort imports by path.
 type ImportGroup []parser.ImportSpec
 
-func (ig ImportGroup) Len() int { return len(ig) }
+func (ig ImportGroup) Len() int           { return len(ig) }
 func (ig ImportGroup) Less(i, j int) bool { return ig[i].Path() < ig[j].Path() }
-func (ig ImportGroup) Swap(i, j int) { ig[i], ig[j] = ig[j], ig[i] }
+func (ig ImportGroup) Swap(i, j int)      { ig[i], ig[j] = ig[j], ig[i] }
 
 // An ImportBlock is a collectino of ImportGroups.
 type ImportBlock []ImportGroup
@@ -138,7 +138,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapBody, w
 	results := fn.Type.Results
 
 	if fn.Doc != nil {
-		FuncDocString(w, f, fn, wrapDocString, lastPos)
+		DocString(w, f, fn.Doc, wrapDocString, lastPos, fn.Type.Pos())
 	} else {
 		w.Write(f.Slice(lastPos, fn.Type.Pos()))
 	}
@@ -245,13 +245,25 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapBody, w
 	w.Write(f.Slice(fn.Type.End(), closing))
 }
 
-func FuncDocString(w io.Writer, f *parser.File, fn *parser.FuncDecl, wrapDocString int, lastPos token.Pos) {
-	w.Write(f.Slice(lastPos, fn.Doc.Pos()))
-	if strings.Fields(fn.Doc.List[0].Text)[0] != "/*" {
-		for i, c := range fn.Doc.List {
+func GenDecl(w io.Writer, f *parser.File, decl ast.GenDecl, wrapDocString int, lastPos token.Pos) {
+	if decl.Doc != nil {
+		DocString(w, f, decl.Doc, wrapDocString, lastPos, decl.TokPos)
+		w.Write(f.Slice(decl.TokPos, decl.End()))
+	} else {
+		w.Write(f.Slice(lastPos, decl.End()))
+	}
+}
+
+// DocString renders a docstring from lastPos to nextPos where lastPos is
+// the end of the previous Decl and next pos is the start of the Decl
+// corresponding to this doc string.
+func DocString(w io.Writer, f *parser.File, doc *ast.CommentGroup, wrapDocString int, lastPos, nextPos token.Pos) {
+	w.Write(f.Slice(lastPos, doc.Pos()))
+	if strings.Fields(doc.List[0].Text)[0] != "/*" {
+		for i, c := range doc.List {
 			if len(c.Text) <= wrapDocString {
 				w.Write(f.Slice(c.Pos(), c.End()))
-				if i < len(fn.Doc.List)-1 {
+				if i < len(doc.List)-1 {
 					w.Write([]byte{'\n'})
 				}
 			} else {
@@ -278,7 +290,7 @@ func FuncDocString(w io.Writer, f *parser.File, fn *parser.FuncDecl, wrapDocStri
 						}
 					}
 					w.Write(commentLine.Bytes())
-					if tokenIdx < len(tokens) || i < len(fn.Doc.List)-1 {
+					if tokenIdx < len(tokens) || i < len(doc.List)-1 {
 						w.Write([]byte{'\n'})
 					}
 				}
@@ -287,8 +299,8 @@ func FuncDocString(w io.Writer, f *parser.File, fn *parser.FuncDecl, wrapDocStri
 
 	} else {
 		// Multiline comments are unchanged for now.
-		w.Write(f.Slice(fn.Doc.Pos(), fn.Doc.End()))
+		w.Write(f.Slice(doc.Pos(), doc.End()))
 	}
 
-	w.Write(f.Slice(fn.Doc.End(), fn.Type.Pos()))
+	w.Write(f.Slice(doc.End(), nextPos))
 }
