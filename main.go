@@ -16,7 +16,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	goparser "go/parser"
@@ -80,16 +79,8 @@ func run() error {
 		return err
 	}
 
-	if flag.NArg() > 1 {
-		return errors.New("must specify exactly one path argument (or zero for stdin)")
-	}
-
-	root, err := filepath.EvalSymlinks(flag.Arg(0))
-	if err != nil {
-		return fmt.Errorf("following symlinks in input path: %s", err)
-	}
-
 	var ignoreRE *regexp.Regexp
+	var err error
 	if len(*ignore) > 0 {
 		ignoreRE, err = regexp.Compile(*ignore)
 		if err != nil {
@@ -97,26 +88,40 @@ func run() error {
 		}
 	}
 
-	err = filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
-		if os.IsNotExist(err) {
-			return nil
-		} else if err != nil {
-			return err
+	visited := make(map[string]struct{})
+
+	for _, root := range flag.Args() {
+		resolved, err := filepath.EvalSymlinks(root)
+		if err != nil {
+			return fmt.Errorf("following symlinks in input path: %s", err)
 		}
-		if ignoreRE != nil && ignoreRE.MatchString(path) {
-			return nil
+
+		err = filepath.Walk(resolved, func(path string, fi os.FileInfo, err error) error {
+			if _, exists := visited[path]; exists {
+				return nil
+			}
+			visited[path] = struct{}{}
+			if os.IsNotExist(err) {
+				return nil
+			} else if err != nil {
+				return err
+			}
+			if ignoreRE != nil && ignoreRE.MatchString(path) {
+				return nil
+			}
+			if fi.IsDir() {
+				return nil
+			}
+			if !strings.HasSuffix(path, ".go") {
+				return nil
+			}
+			return checkPath(path)
+		})
+		if err != nil {
+			return fmt.Errorf("error during walk: %s", err)
 		}
-		if fi.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-		return checkPath(path)
-	})
-	if err != nil {
-		return fmt.Errorf("error during walk: %s", err)
 	}
+
 	return nil
 }
 
