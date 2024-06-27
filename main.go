@@ -16,13 +16,12 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	goparser "go/parser"
 	"go/printer"
 	"go/token"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -32,7 +31,6 @@ import (
 	"github.com/cockroachdb/crlfmt/internal/render"
 	"github.com/cockroachdb/gostdlib/go/format"
 	"github.com/cockroachdb/gostdlib/x/tools/imports"
-	"github.com/cockroachdb/ttycolor"
 )
 
 var (
@@ -48,12 +46,6 @@ var (
 	srcDir       = flag.String("srcdir", "", "resolve imports as if the source file is from the given directory (if a file is given, the parent directory is used)")
 )
 
-var (
-	red   = string(ttycolor.StdoutProfile[ttycolor.Red])
-	green = string(ttycolor.StdoutProfile[ttycolor.Green])
-	reset = string(ttycolor.StdoutProfile[ttycolor.Reset])
-)
-
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
@@ -65,7 +57,7 @@ func run() error {
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		content, err := ioutil.ReadAll(os.Stdin)
+		content, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return err
 		}
@@ -80,16 +72,8 @@ func run() error {
 		return err
 	}
 
-	if flag.NArg() > 1 {
-		return errors.New("must specify exactly one path argument (or zero for stdin)")
-	}
-
-	root, err := filepath.EvalSymlinks(flag.Arg(0))
-	if err != nil {
-		return fmt.Errorf("following symlinks in input path: %s", err)
-	}
-
 	var ignoreRE *regexp.Regexp
+	var err error
 	if len(*ignore) > 0 {
 		ignoreRE, err = regexp.Compile(*ignore)
 		if err != nil {
@@ -97,31 +81,45 @@ func run() error {
 		}
 	}
 
-	err = filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
-		if os.IsNotExist(err) {
-			return nil
-		} else if err != nil {
-			return err
+	visited := make(map[string]struct{})
+
+	for _, root := range flag.Args() {
+		resolved, err := filepath.EvalSymlinks(root)
+		if err != nil {
+			return fmt.Errorf("following symlinks in input path: %s", err)
 		}
-		if ignoreRE != nil && ignoreRE.MatchString(path) {
-			return nil
+
+		err = filepath.Walk(resolved, func(path string, fi os.FileInfo, err error) error {
+			if _, exists := visited[path]; exists {
+				return nil
+			}
+			visited[path] = struct{}{}
+			if os.IsNotExist(err) {
+				return nil
+			} else if err != nil {
+				return err
+			}
+			if ignoreRE != nil && ignoreRE.MatchString(path) {
+				return nil
+			}
+			if fi.IsDir() {
+				return nil
+			}
+			if !strings.HasSuffix(path, ".go") {
+				return nil
+			}
+			return checkPath(path)
+		})
+		if err != nil {
+			return fmt.Errorf("error during walk: %s", err)
 		}
-		if fi.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-		return checkPath(path)
-	})
-	if err != nil {
-		return fmt.Errorf("error during walk: %s", err)
 	}
+
 	return nil
 }
 
 func checkPath(path string) error {
-	src, err := ioutil.ReadFile(path)
+	src, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -142,7 +140,7 @@ func checkPath(path string) error {
 		}
 
 		if *overwrite {
-			err := ioutil.WriteFile(path, output, 0)
+			err := os.WriteFile(path, output, 0)
 			if err != nil {
 				return err
 			}

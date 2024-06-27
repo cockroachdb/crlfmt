@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/cockroachdb/gostdlib v1.19.0
-	github.com/cockroachdb/ttycolor v0.0.0-20180709150743-a1d5aaeb377d
 	github.com/stretchr/testify v1.6.1
 )
 
