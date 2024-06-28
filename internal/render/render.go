@@ -234,7 +234,7 @@ func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapBody, w
 		if (singleLineResultsLen <= wrapBody || exactlyOneResult) && !resultsHaveComments {
 			w.Write(resultsJoined)
 			fmt.Fprint(w, funcEnd)
-		} else {
+		} else if results != nil {
 			fmt.Fprintln(w)
 			for _, result := range results.List {
 				renderLineFuncField(w, f, result)
