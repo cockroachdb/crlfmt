@@ -16,7 +16,7 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -38,7 +38,7 @@ func TestCheckPath(t *testing.T) {
 	}
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
-			inBytes, err := ioutil.ReadFile(file)
+			inBytes, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -49,10 +49,10 @@ func TestCheckPath(t *testing.T) {
 				t.Fatal(err)
 			}
 			if *rewrite {
-				err := ioutil.WriteFile(outFile, output, 0666)
+				err := os.WriteFile(outFile, output, 0666)
 				require.NoError(t, err)
 			} else {
-				expBytes, err := ioutil.ReadFile(outFile)
+				expBytes, err := os.ReadFile(outFile)
 				if err != nil {
 					t.Fatal(err)
 				}
