@@ -1,5 +1,8 @@
 package test
 
+func signatureWithoutParametersButLongerThanTheWrapLength123456789123456789123456789123456789123456789() {
+}
+
 func someSignatureThatIs100Chars____________________________________(someArg, someOtherArg string) {
 }
 
