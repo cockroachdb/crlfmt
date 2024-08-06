@@ -43,6 +43,7 @@ var (
 	groupImports = flag.Bool("groupimports", true, "group imports by type")
 	printDiff    = flag.Bool("diff", true, "print diffs")
 	ignore       = flag.String("ignore", "", "regex matching files to skip")
+	localPrefix  = flag.String("local", "", "put imports beginning with this string after 3rd-party packages; comma-separated list")
 	srcDir       = flag.String("srcdir", "", "resolve imports as if the source file is from the given directory (if a file is given, the parent directory is used)")
 )
 
@@ -161,6 +162,10 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 			FormatOnly: false,
 		}
 
+		if localPrefix != nil && *localPrefix != "" {
+			imports.LocalPrefix = *localPrefix
+		}
+
 		pathForImports := path
 		if *srcDir != "" {
 			filename := filepath.Base(path)
@@ -272,6 +277,7 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 			lastPos = typ.End()
 		}
 	}
+
 	output.Write(src[file.Offset(lastPos):])
 	return output.Bytes(), nil
 }
@@ -287,23 +293,46 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 // exception is made for cgo, whose "C" psuedo-imports are extracted into
 // separate import declarations.
 func remapImports(file *parser.File) map[*parser.ImportDecl][]render.ImportBlock {
-	var (
-		stdlibImports []parser.ImportSpec
-		otherImports  []parser.ImportSpec
-	)
+	imports := file.ImportSpecs()
+	stdlibImports := make([]parser.ImportSpec, 0, len(imports))
+	otherImports := make([]parser.ImportSpec, 0, len(imports))
+	localImports := make([]parser.ImportSpec, 0, len(imports))
 
-	for _, imp := range file.ImportSpecs() {
-		switch impPath := imp.Path(); {
-		case impPath == "C":
-			continue
-		case strings.Contains(impPath, "."):
-			otherImports = append(otherImports, imp)
-		default:
-			stdlibImports = append(stdlibImports, imp)
+	localPrefixes := []string{}
+	if localPrefix != nil && *localPrefix != "" {
+		lps := strings.Split(*localPrefix, ",")
+		localPrefixes = make([]string, 0, len(lps))
+		for _, lp := range lps {
+			if !strings.HasSuffix(lp, "/") {
+				lp += "/"
+			}
+			localPrefixes = append(localPrefixes, lp)
 		}
 	}
 
-	mainBlock := render.ImportBlock{stdlibImports, otherImports}
+NEXT_IMPORT:
+	for _, imp := range imports {
+		impPath := imp.Path()
+		if impPath == "C" {
+			continue NEXT_IMPORT
+		}
+
+		for _, lp := range localPrefixes {
+			if strings.HasPrefix(impPath, lp) {
+				localImports = append(localImports, imp)
+				continue NEXT_IMPORT
+			}
+		}
+
+		if strings.Contains(impPath, ".") {
+			otherImports = append(otherImports, imp)
+			continue NEXT_IMPORT
+		}
+
+		stdlibImports = append(stdlibImports, imp)
+	}
+
+	mainBlock := render.ImportBlock{stdlibImports, otherImports, localImports}
 	needMainBlock := mainBlock.Size() > 0
 
 	mapping := map[*parser.ImportDecl][]render.ImportBlock{}
