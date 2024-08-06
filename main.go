@@ -43,7 +43,7 @@ var (
 	groupImports = flag.Bool("groupimports", true, "group imports by type")
 	printDiff    = flag.Bool("diff", true, "print diffs")
 	ignore       = flag.String("ignore", "", "regex matching files to skip")
-	localPrefix  = flag.String("local", "", "local imports path")
+	localPrefix  = flag.String("local", "", "put imports beginning with this string after 3rd-party packages; comma-separated list")
 	srcDir       = flag.String("srcdir", "", "resolve imports as if the source file is from the given directory (if a file is given, the parent directory is used)")
 )
 
