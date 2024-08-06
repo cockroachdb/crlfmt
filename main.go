@@ -298,6 +298,18 @@ func remapImports(file *parser.File) map[*parser.ImportDecl][]render.ImportBlock
 	otherImports := make([]parser.ImportSpec, 0, len(imports))
 	localImports := make([]parser.ImportSpec, 0, len(imports))
 
+	localPrefixes := []string{}
+	if localPrefix != nil && *localPrefix != "" {
+		lps := strings.Split(*localPrefix, ",")
+		localPrefixes = make([]string, 0, len(lps))
+		for _, lp := range lps {
+			if !strings.HasSuffix(lp, "/") {
+				lp += "/"
+			}
+			localPrefixes = append(localPrefixes, lp)
+		}
+	}
+
 NEXT_IMPORT:
 	for _, imp := range imports {
 		impPath := imp.Path()
@@ -305,15 +317,10 @@ NEXT_IMPORT:
 			continue NEXT_IMPORT
 		}
 
-		if localPrefix != nil && *localPrefix != "" {
-			for _, lp := range strings.Split(*localPrefix, ",") {
-				if !strings.HasSuffix(lp, "/") {
-					lp += "/"
-				}
-				if strings.HasPrefix(impPath, lp) {
-					localImports = append(localImports, imp)
-					continue NEXT_IMPORT
-				}
+		for _, lp := range localPrefixes {
+			if strings.HasPrefix(impPath, lp) {
+				localImports = append(localImports, imp)
+				continue NEXT_IMPORT
 			}
 		}
 
