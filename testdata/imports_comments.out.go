@@ -12,25 +12,17 @@ import (
 	"f"
 	"g"
 	"h" // a line comment
+	// interleaved comment to be preserved
+	// import doc block comment to be removed
+	// b line comment
+	// d doc comment
+	// e doc comment
+	// e line comment
+	// f doc comment
+	// f line comment
+	// g line comment
+	// import doc comment to be deleted; there's nothing sensible we can do with it
 )
-
-// interleaved comment to be preserved
-
-// import doc block comment to be removed
-
-// b line comment
-
-// d doc comment
-
-// e doc comment
-// e line comment
-
-// f doc comment
-// f line comment
-
-// g line comment
-
-// import doc comment to be deleted; there's nothing sensible we can do with it
 
 var _ = a.Foo
 var _ = b.Foo

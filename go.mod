@@ -1,6 +1,6 @@
 module github.com/cockroachdb/crlfmt
 
-go 1.19
+go 1.26
 
 require (
 	github.com/cockroachdb/gostdlib v1.19.0
