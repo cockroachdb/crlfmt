@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/format"
 	goparser "go/parser"
 	"go/printer"
 	"go/token"
@@ -26,8 +27,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"go/format"
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 	"github.com/cockroachdb/crlfmt/internal/render"
