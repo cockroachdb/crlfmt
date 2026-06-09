@@ -133,7 +133,13 @@ func renderLineFuncField(w io.Writer, f *parser.File, param *ast.Field) {
 // Func renders the function fn into w. The function is wrapped so that no line
 // exceeds past the wrap column wrapCol when tabs are rendered with specified
 // tab size.
-func Func(w io.Writer, f *parser.File, fn *parser.FuncDecl, tabSize, wrapBody, wrapDocString int, lastPos token.Pos) {
+func Func(
+	w io.Writer,
+	f *parser.File,
+	fn *parser.FuncDecl,
+	tabSize, wrapBody, wrapDocString int,
+	lastPos token.Pos,
+) {
 	params := fn.Type.Params
 	results := fn.Type.Results
 
@@ -257,7 +263,9 @@ func GenDecl(w io.Writer, f *parser.File, decl ast.GenDecl, wrapDocString int, l
 // DocString renders a docstring from lastPos to nextPos where lastPos is
 // the end of the previous Decl and next pos is the start of the Decl
 // corresponding to this doc string.
-func DocString(w io.Writer, f *parser.File, doc *ast.CommentGroup, wrapDocString int, lastPos, nextPos token.Pos) {
+func DocString(
+	w io.Writer, f *parser.File, doc *ast.CommentGroup, wrapDocString int, lastPos, nextPos token.Pos,
+) {
 	w.Write(f.Slice(lastPos, doc.Pos()))
 	if strings.Fields(doc.List[0].Text)[0] != "/*" {
 		for i, c := range doc.List {

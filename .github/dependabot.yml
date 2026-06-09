@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Keep Go module dependencies up to date.
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Keep GitHub Actions pinned versions up to date.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
