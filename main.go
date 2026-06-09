@@ -12,6 +12,8 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
+// Command crlfmt formats Go source code according to CockroachDB's style,
+// wrapping long function signatures and grouping imports.
 package main
 
 import (
@@ -137,7 +139,9 @@ func checkPath(path string) error {
 				return fmt.Errorf("computing diff: %s", err)
 			}
 			fmt.Printf("diff -u old/%[1]s new/%[1]s\n", filepath.ToSlash(path))
-			os.Stdout.Write(data)
+			if _, err := os.Stdout.Write(data); err != nil {
+				return fmt.Errorf("writing diff: %s", err)
+			}
 		}
 
 		if *overwrite {
@@ -196,7 +200,9 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 				Mode:     printer.UseSpaces | printer.TabIndent,
 			}
 			var buf bytes.Buffer
-			prCfg.Fprint(&buf, fileSet, f)
+			if err := prCfg.Fprint(&buf, fileSet, f); err != nil {
+				return nil, err
+			}
 			src = buf.Bytes()
 		}
 	}
@@ -290,7 +296,7 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 //
 // The goal is to have just one import declaration, within which imports are
 // grouped standard library imports and non-standard library imports. An
-// exception is made for cgo, whose "C" psuedo-imports are extracted into
+// exception is made for cgo, whose "C" pseudo-imports are extracted into
 // separate import declarations.
 func remapImports(file *parser.File) map[*parser.ImportDecl][]render.ImportBlock {
 	imports := file.ImportSpecs()
@@ -347,11 +353,11 @@ NEXT_IMPORT:
 		}
 		if needMainBlock && len(cImports) != len(imp.Specs) {
 			// The first import declaration we see that contains something other
-			// than "C" psuedo-imports will be our main import block.
+			// than "C" pseudo-imports will be our main import block.
 			blocks = append(blocks, mainBlock)
 			needMainBlock = false
 		}
-		// If there were any "C" psuedo-imports in this declaration, split them
+		// If there were any "C" pseudo-imports in this declaration, split them
 		// out into their own import declarations.
 		for _, imp := range cImports {
 			if imp.Doc == nil {

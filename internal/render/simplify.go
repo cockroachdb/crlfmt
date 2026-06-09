@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 )
 
+// Simplify applies gofmt's -s simplifications to the file in place.
 func Simplify(f *ast.File) {
 	// remove empty declarations such as "const ()", etc
 	removeEmptyDeclGroups(f)
@@ -24,19 +25,16 @@ func Simplify(f *ast.File) {
 
 // Values/types for special cases.
 var (
-	objectPtrNil = reflect.ValueOf((*ast.Object)(nil))
-	scopePtrNil  = reflect.ValueOf((*ast.Scope)(nil))
-
-	identType     = reflect.TypeOf((*ast.Ident)(nil))
+	identType = reflect.TypeOf((*ast.Ident)(nil))
+	//nolint:staticcheck // ast.Object identity check mirrors upstream gofmt.
 	objectPtrType = reflect.TypeOf((*ast.Object)(nil))
 	positionType  = reflect.TypeOf(token.NoPos)
 	callExprType  = reflect.TypeOf((*ast.CallExpr)(nil))
-	scopePtrType  = reflect.TypeOf((*ast.Scope)(nil))
 )
 
 func isWildcard(s string) bool {
-	rune, size := utf8.DecodeRuneInString(s)
-	return size == len(s) && unicode.IsLower(rune)
+	r, size := utf8.DecodeRuneInString(s)
+	return size == len(s) && unicode.IsLower(r)
 }
 
 // match reports whether pattern matches val,
@@ -244,14 +242,6 @@ func (s simplifier) simplifyLiteral(typ reflect.Value, astType, x ast.Expr, px *
 func isBlank(x ast.Expr) bool {
 	ident, ok := x.(*ast.Ident)
 	return ok && ident.Name == "_"
-}
-
-func simplify(f *ast.File) {
-	// remove empty declarations such as "const ()", etc
-	removeEmptyDeclGroups(f)
-
-	var s simplifier
-	ast.Walk(s, f)
 }
 
 func removeEmptyDeclGroups(f *ast.File) {

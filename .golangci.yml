@@ -8,11 +8,17 @@ linters:
   enable:
     - misspell    # common misspellings
     - revive      # style/lint replacement for the old golint
+  settings:
+    errcheck:
+      # The renderers write to in-memory bytes.Buffers, where these calls can
+      # never fail; checking each return value would only add noise.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (io.Writer).Write
 
 issues:
   # Report every issue, not just a sample.
   max-issues-per-linter: 0
   max-same-issues: 0
-  # Only flag issues introduced by the code a PR changes; the repo's existing
-  # findings are grandfathered. Drop this once they've been cleaned up.
-  new-from-merge-base: origin/master
