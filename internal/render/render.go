@@ -12,6 +12,8 @@
 // implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
+// Package render turns parsed Go declarations back into formatted source,
+// wrapping function signatures and grouping imports per crlfmt's style.
 package render
 
 import (
@@ -251,6 +253,8 @@ func Func(
 	w.Write(f.Slice(fn.Type.End(), closing))
 }
 
+// GenDecl renders a generic declaration (const, var, or type) into w,
+// including its doc comment.
 func GenDecl(w io.Writer, f *parser.File, decl ast.GenDecl, wrapDocString int, lastPos token.Pos) {
 	if decl.Doc != nil {
 		DocString(w, f, decl.Doc, wrapDocString, lastPos, decl.TokPos)
@@ -287,14 +291,14 @@ func DocString(
 					if len(tokens[tokenIdx])+1 >= remainingBuf {
 						commentLine.WriteString(" ")
 						commentLine.WriteString(tokens[tokenIdx])
-						tokenIdx += 1
+						tokenIdx++
 					} else {
 						for tokenIdx < len(tokens) && len(tokens[tokenIdx])+1 <= remainingBuf {
 							commentLine.WriteString(" ")
-							remainingBuf -= 1
+							remainingBuf--
 							commentLine.WriteString(tokens[tokenIdx])
 							remainingBuf -= len(tokens[tokenIdx])
-							tokenIdx += 1
+							tokenIdx++
 						}
 					}
 					w.Write(commentLine.Bytes())

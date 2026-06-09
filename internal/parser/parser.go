@@ -132,6 +132,7 @@ type ImportDecl struct {
 	Pos, End token.Pos
 }
 
+// ImportDecls returns all the import declarations at the top of the file.
 func (f *File) ImportDecls() []*ImportDecl {
 	var out []*ImportDecl
 	for _, d := range f.Decls {
@@ -161,6 +162,7 @@ func (f *File) ImportSpecs() []ImportSpec {
 	return out
 }
 
+// Path returns the unquoted import path of the spec.
 func (i *ImportSpec) Path() string {
 	if t, err := strconv.Unquote(i.ImportSpec.Path.Value); err == nil {
 		return t
@@ -168,6 +170,7 @@ func (i *ImportSpec) Path() string {
 	return ""
 }
 
+// FuncDecl represents a function declaration.
 type FuncDecl struct {
 	ast.FuncDecl
 }
@@ -181,18 +184,22 @@ func (f *FuncDecl) BodyEnd() token.Pos {
 	return f.Body.Pos() + 1
 }
 
+// Decl is implemented by the declaration types in this package.
 type Decl interface {
 	decl()
 }
 
+// TypeDecl represents a type declaration.
 type TypeDecl struct {
 	ast.GenDecl
 }
 
+// VarDecl represents a var declaration.
 type VarDecl struct {
 	ast.GenDecl
 }
 
+// ConstDecl represents a const declaration.
 type ConstDecl struct {
 	ast.GenDecl
 }

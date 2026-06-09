@@ -73,14 +73,15 @@ func assocFieldListComments(cr *commentListReader, fieldList *ast.FieldList) {
 			// Consider any comment that starts on a line earlier than this
 			// field and ends before the next field (or the closing parenthesis,
 			// in the case of the last field.)
-			if cr.end().Offset < openPos.Offset {
-				// The comment starts too early.
-			} else if cr.end().Line == fp.Line-1 || (cr.pos().Line == fp.Line && cr.end().Offset < fp.Offset) {
-				// The comment immediately precedes the import. Doc comment.
-				f.Doc = cr.comment()
-			} else if cr.pos().Line == fp.Line {
-				// The comment immediately follows the import. Line comment.
-				f.Comment = cr.comment()
+			// Ignore comments that start too early; otherwise classify them.
+			if cr.end().Offset >= openPos.Offset {
+				if cr.end().Line == fp.Line-1 || (cr.pos().Line == fp.Line && cr.end().Offset < fp.Offset) {
+					// The comment immediately precedes the import. Doc comment.
+					f.Doc = cr.comment()
+				} else if cr.pos().Line == fp.Line {
+					// The comment immediately follows the import. Line comment.
+					f.Comment = cr.comment()
+				}
 			}
 			cr.next()
 		}

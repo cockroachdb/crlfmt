@@ -42,7 +42,7 @@ func TestCheckPath(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			outFile := strings.Replace(file, ".in.go", ".out.go", -1)
+			outFile := strings.ReplaceAll(file, ".in.go", ".out.go")
 
 			output, err := checkBuf(file, inBytes)
 			if err != nil {

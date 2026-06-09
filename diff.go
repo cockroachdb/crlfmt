@@ -7,7 +7,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,13 +17,13 @@ func diff(b1, b2 []byte, filename string) (data []byte, err error) {
 	if err != nil {
 		return
 	}
-	defer os.Remove(f1)
+	defer func() { _ = os.Remove(f1) }()
 
 	f2, err := writeTempFile("", "gofmt", b2)
 	if err != nil {
 		return
 	}
-	defer os.Remove(f2)
+	defer func() { _ = os.Remove(f2) }()
 
 	cmd := "diff"
 	if _, err := exec.LookPath("colordiff"); err == nil {
@@ -70,7 +69,7 @@ func replaceTempFilename(diff []byte, filename string) ([]byte, error) {
 }
 
 func writeTempFile(dir, prefix string, data []byte) (string, error) {
-	file, err := ioutil.TempFile(dir, prefix)
+	file, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +78,7 @@ func writeTempFile(dir, prefix string, data []byte) (string, error) {
 		err = err1
 	}
 	if err != nil {
-		os.Remove(file.Name())
+		_ = os.Remove(file.Name())
 		return "", err
 	}
 	return file.Name(), nil
