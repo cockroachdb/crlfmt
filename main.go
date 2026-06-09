@@ -27,10 +27,11 @@ import (
 	"regexp"
 	"strings"
 
+	"go/format"
+
 	"github.com/cockroachdb/crlfmt/internal/parser"
 	"github.com/cockroachdb/crlfmt/internal/render"
-	"github.com/cockroachdb/gostdlib/go/format"
-	"github.com/cockroachdb/gostdlib/x/tools/imports"
+	"golang.org/x/tools/imports"
 )
 
 var (
