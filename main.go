@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/format"
 	goparser "go/parser"
 	"go/printer"
 	"go/token"
@@ -29,8 +30,7 @@ import (
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 	"github.com/cockroachdb/crlfmt/internal/render"
-	"github.com/cockroachdb/gostdlib/go/format"
-	"github.com/cockroachdb/gostdlib/x/tools/imports"
+	"golang.org/x/tools/imports"
 )
 
 var (
