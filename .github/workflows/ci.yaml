@@ -19,7 +19,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v5
         with:
@@ -36,7 +36,7 @@ jobs:
     name: Vet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v5
         with:
@@ -55,7 +55,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # needed for new-from-merge-base to find the base ref
 
@@ -73,7 +73,7 @@ jobs:
     name: crlfmt (self-check)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v5
         with:
