@@ -24,6 +24,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/cockroachdb/crlfmt/internal/parser"
 )
@@ -215,7 +216,7 @@ func Func(
 	w.Write(f.Slice(fn.Pos(), opening))
 	// colOffset - 1 accounts for `func (r *foo) bar(`
 	colOffset := f.Position(opening).Column - 1
-	singleLineLen := colOffset + len(paramsJoined) + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
+	singleLineLen := colOffset + utf8.RuneCount(paramsJoined) + len(funcMid) + utf8.RuneCount(resultsJoined) + len(funcEnd) + brace
 	if singleLineLen <= wrapBody && !paramsHaveComments && !resultsHaveComments {
 		w.Write(paramsJoined)
 		fmt.Fprint(w, funcMid)
@@ -229,7 +230,7 @@ func Func(
 			// special case: if we have no params, the res type starts on the same
 			// line rather than on its own.
 			resTypeStartingCol = colOffset
-		} else if tabSize+len(paramsJoined)+len(paramsLineEndComma) <= wrapBody && !paramsHaveComments {
+		} else if tabSize+utf8.RuneCount(paramsJoined)+len(paramsLineEndComma) <= wrapBody && !paramsHaveComments {
 			fmt.Fprintf(w, "\n\t%s,\n", paramsJoined)
 		} else {
 			fmt.Fprintln(w)
@@ -238,7 +239,7 @@ func Func(
 			}
 		}
 		fmt.Fprint(w, funcMid)
-		singleLineResultsLen := resTypeStartingCol + len(funcMid) + len(resultsJoined) + len(funcEnd) + brace
+		singleLineResultsLen := resTypeStartingCol + len(funcMid) + utf8.RuneCount(resultsJoined) + len(funcEnd) + brace
 		if (singleLineResultsLen <= wrapBody || exactlyOneResult) && !resultsHaveComments {
 			w.Write(resultsJoined)
 			fmt.Fprint(w, funcEnd)
@@ -273,7 +274,7 @@ func DocString(
 	w.Write(f.Slice(lastPos, doc.Pos()))
 	if strings.Fields(doc.List[0].Text)[0] != "/*" {
 		for i, c := range doc.List {
-			if len(c.Text) <= wrapDocString {
+			if utf8.RuneCountInString(c.Text) <= wrapDocString {
 				w.Write(f.Slice(c.Pos(), c.End()))
 				if i < len(doc.List)-1 {
 					w.Write([]byte{'\n'})
@@ -288,16 +289,16 @@ func DocString(
 					commentLine.WriteString("//")
 					remainingBuf := wrapDocString - 2
 
-					if len(tokens[tokenIdx])+1 >= remainingBuf {
+					if utf8.RuneCountInString(tokens[tokenIdx])+1 >= remainingBuf {
 						commentLine.WriteString(" ")
 						commentLine.WriteString(tokens[tokenIdx])
 						tokenIdx++
 					} else {
-						for tokenIdx < len(tokens) && len(tokens[tokenIdx])+1 <= remainingBuf {
+						for tokenIdx < len(tokens) && utf8.RuneCountInString(tokens[tokenIdx])+1 <= remainingBuf {
 							commentLine.WriteString(" ")
 							remainingBuf--
 							commentLine.WriteString(tokens[tokenIdx])
-							remainingBuf -= len(tokens[tokenIdx])
+							remainingBuf -= utf8.RuneCountInString(tokens[tokenIdx])
 							tokenIdx++
 						}
 					}
