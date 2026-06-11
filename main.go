@@ -41,7 +41,8 @@ var (
 	wrap         = flag.Int("wrap", 100, "column to wrap at")
 	tab          = flag.Int("tab", 2, "tab width for column calculations")
 	overwrite    = flag.Bool("w", false, "overwrite modified files")
-	fast         = flag.Bool("fast", false, "skip running goimports and simplify")
+	fast         = flag.Bool("fast", false, "skip running goimports/gofmt and simplify")
+	formatOnly   = flag.Bool("formatonly", false, "format imports without resolving them; avoids requiring the go toolchain at runtime, but does not add missing or remove unused imports")
 	groupImports = flag.Bool("groupimports", true, "group imports by type")
 	printDiff    = flag.Bool("diff", true, "print diffs")
 	ignore       = flag.String("ignore", "", "regex matching files to skip")
@@ -163,7 +164,7 @@ func checkBuf(path string, src []byte) ([]byte, error) {
 			Comments:   true,
 			TabIndent:  false,
 			TabWidth:   *tab,
-			FormatOnly: false,
+			FormatOnly: *formatOnly,
 		}
 
 		if localPrefix != nil && *localPrefix != "" {
